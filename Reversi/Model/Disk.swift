@@ -3,13 +3,15 @@ public enum Disk {
     case light
 }
 
-extension Disk: Hashable {}
+extension Disk: Hashable, CaseIterable {}
 
 extension Disk {
     /// `Disk` のすべての値を列挙した `Array` 、 `[.dark, .light]` を返します。
     public static var sides: [Disk] {
         [.dark, .light]
     }
+
+    public static var firstTurn: Disk = .dark
     
     /// 自身の値を反転させた値（ `.dark` なら `.light` 、 `.light` なら `.dark` ）を返します。
     public var flipped: Disk {
@@ -24,3 +26,23 @@ extension Disk {
         self = flipped
     }
 }
+
+extension Disk {
+    init(index: Int) {
+        for side in Disk.sides {
+            if index == side.index {
+                self = side
+                return
+            }
+        }
+        preconditionFailure("Illegal index: \(index)")
+    }
+    
+    var index: Int {
+        switch self {
+        case .dark: return 0
+        case .light: return 1
+        }
+    }
+}
+
