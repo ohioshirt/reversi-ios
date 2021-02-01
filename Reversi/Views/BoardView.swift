@@ -5,13 +5,7 @@ private let lineWidth: CGFloat = 2
 public class BoardView: UIView {
     private var cellViews: [CellView] = []
     private var actions: [CellSelectionAction] = []
-    
-    /// 盤の幅（ `8` ）を表します。
-    public let width: Int = 8
-    
-    /// 盤の高さ（ `8` ）を返します。
-    public let height: Int = 8
-    
+
     /// 盤のセルの `x` の範囲（ `0 ..< 8` ）を返します。
     public let xRange: Range<Int>
     
@@ -22,15 +16,15 @@ public class BoardView: UIView {
     public weak var delegate: BoardViewDelegate?
     
     override public init(frame: CGRect) {
-        xRange = 0 ..< width
-        yRange = 0 ..< height
+        xRange = 0 ..< Board.width
+        yRange = 0 ..< Board.height
         super.init(frame: frame)
         setUp()
     }
     
     required public init?(coder: NSCoder) {
-        xRange = 0 ..< width
-        yRange = 0 ..< height
+        xRange = 0 ..< Board.width
+        yRange = 0 ..< Board.height
         super.init(coder: coder)
         setUp()
     }
@@ -38,7 +32,7 @@ public class BoardView: UIView {
     private func setUp() {
         self.backgroundColor = UIColor(named: "DarkColor")!
         
-        let cellViews: [CellView] = (0 ..< (width * height)).map { _ in
+        let cellViews: [CellView] = (0 ..< (Board.width * Board.height)).map { _ in
             let cellView = CellView()
             cellView.translatesAutoresizingMaskIntoConstraints = false
             return cellView
@@ -79,12 +73,12 @@ public class BoardView: UIView {
                     cellView.leftAnchor.constraint(equalTo: leftNeighborAnchor, constant: lineWidth),
                 ])
                 
-                if y == height - 1 {
+                if y == Board.height - 1 {
                     NSLayoutConstraint.activate([
                         self.bottomAnchor.constraint(equalTo: cellView.bottomAnchor, constant: lineWidth),
                     ])
                 }
-                if x == width - 1 {
+                if x == Board.width - 1 {
                     NSLayoutConstraint.activate([
                         self.rightAnchor.constraint(equalTo: cellView.rightAnchor, constant: lineWidth),
                     ])
@@ -112,15 +106,15 @@ public class BoardView: UIView {
             }
         }
         
-        setDisk(.light, atX: width / 2 - 1, y: height / 2 - 1, animated: false)
-        setDisk(.dark, atX: width / 2, y: height / 2 - 1, animated: false)
-        setDisk(.dark, atX: width / 2 - 1, y: height / 2, animated: false)
-        setDisk(.light, atX: width / 2, y: height / 2, animated: false)
+        setDisk(.light, atX: Board.width / 2 - 1, y: Board.height / 2 - 1, animated: false)
+        setDisk(.dark, atX: Board.width / 2, y: Board.height / 2 - 1, animated: false)
+        setDisk(.dark, atX: Board.width / 2 - 1, y: Board.height / 2, animated: false)
+        setDisk(.light, atX: Board.width / 2, y: Board.height / 2, animated: false)
     }
     
     private func cellViewAt(x: Int, y: Int) -> CellView? {
         guard xRange.contains(x) && yRange.contains(y) else { return nil }
-        return cellViews[y * width + x]
+        return cellViews[y * Board.width + x]
     }
     
     /// `x`, `y` で指定されたセルの状態を返します。
