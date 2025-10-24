@@ -253,4 +253,60 @@ final class GameEngineTests: XCTestCase {
         XCTAssertEqual(flipped.count, 0, "すでにディスクがある位置では何も反転しない")
         XCTAssertEqual(board.disk(at: position), .light, "元のディスクが残る")
     }
+
+    // MARK: - winner テスト
+
+    func test_黒が多い盤面_黒が勝者() {
+        // Given: 黒が3個、白が1個の盤面
+        let board = BoardBuilder()
+            .place(.dark, at: (0, 0))
+            .place(.dark, at: (1, 0))
+            .place(.dark, at: (2, 0))
+            .place(.light, at: (3, 0))
+            .build()
+
+        // When: 勝者を判定
+        let winner = engine.winner(in: board)
+
+        // Then: 黒が勝者
+        XCTAssertEqual(winner, .dark, "黒が勝者")
+    }
+
+    func test_白が多い盤面_白が勝者() {
+        // Given: 白が3個、黒が1個の盤面
+        let board = BoardBuilder()
+            .place(.light, at: (0, 0))
+            .place(.light, at: (1, 0))
+            .place(.light, at: (2, 0))
+            .place(.dark, at: (3, 0))
+            .build()
+
+        // When: 勝者を判定
+        let winner = engine.winner(in: board)
+
+        // Then: 白が勝者
+        XCTAssertEqual(winner, .light, "白が勝者")
+    }
+
+    func test_同数の盤面_引き分けでnil() {
+        // Given: 黒白が同数（各2個）の盤面
+        let board = Board.initial()
+
+        // When: 勝者を判定
+        let winner = engine.winner(in: board)
+
+        // Then: 引き分けでnil
+        XCTAssertNil(winner, "同数なので引き分け")
+    }
+
+    func test_空の盤面_引き分けでnil() {
+        // Given: 空の盤面
+        let board = Board()
+
+        // When: 勝者を判定
+        let winner = engine.winner(in: board)
+
+        // Then: 引き分けでnil
+        XCTAssertNil(winner, "空盤面は引き分け")
+    }
 }
