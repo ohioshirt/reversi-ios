@@ -65,6 +65,40 @@ public final class GameEngine {
         return false
     }
 
+    // MARK: - Place Disk
+
+    /// 指定された位置にディスクを配置し、反転されるディスクの位置を返す
+    /// - Parameters:
+    ///   - position: 配置する位置
+    ///   - side: プレイヤーの色
+    ///   - board: 盤面（inout: 実際に変更される）
+    /// - Returns: 反転されたディスクの位置の配列
+    @discardableResult
+    public func placeDisk(at position: Position, for side: Disk, on board: inout Board) -> [Position] {
+        // 配置できない場合は空配列を返す
+        guard canPlaceDisk(at: position, for: side, in: board) else {
+            return []
+        }
+
+        var flipped: [Position] = []
+
+        // 8方向それぞれで反転するディスクを収集
+        for direction in Self.directions {
+            let flippedInDirection = disksToFlip(from: position, direction: direction, for: side, in: board)
+            flipped.append(contentsOf: flippedInDirection)
+        }
+
+        // ディスクを配置
+        board.setDisk(side, at: position)
+
+        // 反転を実行
+        for pos in flipped {
+            board.setDisk(side, at: pos)
+        }
+
+        return flipped
+    }
+
     // MARK: - Private Helpers
 
     /// 指定された方向に相手のディスクを挟めるかチェック
@@ -98,5 +132,39 @@ public final class GameEngine {
 
         // 盤面の端に到達 → 挟めない
         return false
+    }
+
+    /// 指定された方向で反転されるディスクの位置を返す
+    /// - Parameters:
+    ///   - position: 開始位置
+    ///   - direction: 方向ベクトル
+    ///   - side: プレイヤーの色
+    ///   - board: 盤面
+    /// - Returns: 反転されるディスクの位置の配列
+    private func disksToFlip(from position: Position, direction: (dx: Int, dy: Int), for side: Disk, in board: Board) -> [Position] {
+        guard canFlip(from: position, direction: direction, for: side, in: board) else {
+            return []
+        }
+
+        let opponent = side.flipped
+        var flipped: [Position] = []
+        var current = position.moved(dx: direction.dx, dy: direction.dy)
+
+        // 相手のディスクを収集
+        while current.isValid {
+            guard let disk = board.disk(at: current) else {
+                break
+            }
+
+            if disk == opponent {
+                flipped.append(current)
+                current = current.moved(dx: direction.dx, dy: direction.dy)
+            } else {
+                // 自分のディスクに到達
+                break
+            }
+        }
+
+        return flipped
     }
 }
