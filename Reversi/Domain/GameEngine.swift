@@ -65,6 +65,24 @@ public final class GameEngine {
         return false
     }
 
+    // MARK: - Game State
+
+    /// 勝者を判定する
+    /// - Parameter board: 現在の盤面
+    /// - Returns: 勝者（引き分けの場合はnil）
+    public func winner(in board: Board) -> Disk? {
+        let darkCount = board.count(of: .dark)
+        let lightCount = board.count(of: .light)
+
+        if darkCount > lightCount {
+            return .dark
+        } else if lightCount > darkCount {
+            return .light
+        } else {
+            return nil // 引き分け
+        }
+    }
+
     // MARK: - Place Disk
 
     /// 指定された位置にディスクを配置し、反転されるディスクの位置を返す
