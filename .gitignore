@@ -2,3 +2,15 @@
 /*.xcodeproj/project.xcworkspace/xcuserdata
 /*.xcworkspace/xcuserdata
 
+# CI/CD
+DerivedData/
+*.xcresult
+xcodebuild.log
+coverage.txt
+
+# Build artifacts
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM

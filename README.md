@@ -1,5 +1,7 @@
 # リファクタリング・チャレンジ （リバーシ編） iOS版
 
+[![Tests](https://github.com/ohioshirt/reversi-ios/actions/workflows/test.yml/badge.svg)](https://github.com/ohioshirt/reversi-ios/actions/workflows/test.yml)
+
 本チャレンジは、 _Fat View Controller_ として実装された[リバーシ](https://en.wikipedia.org/wiki/Reversi)アプリをリファクタリングし、どれだけクリーンな設計とコードを実現できるかというコンペティションです（ジャッジが優劣を判定するわけではなく、設計の技を競い合うのが目的です）。
 
 ![アプリのスクリーンショット](img/screenshot.png)

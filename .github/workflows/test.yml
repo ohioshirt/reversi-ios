@@ -1,0 +1,68 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Build and Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Reversi.xcodeproj \
+            -scheme Reversi \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -enableCodeCoverage YES \
+            -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            | tee xcodebuild.log
+
+      - name: Generate code coverage report
+        if: success() || failure()
+        run: |
+          XCRESULT_PATH=$(find DerivedData/Logs/Test -name "*.xcresult" | head -n 1)
+          if [ -n "$XCRESULT_PATH" ]; then
+            xcrun xccov view --report --only-targets "$XCRESULT_PATH" > coverage.txt
+            echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat coverage.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+
+            # Extract overall coverage percentage
+            COVERAGE=$(grep -E "Reversi\.app" coverage.txt | awk '{print $NF}' || echo "N/A")
+            echo "📊 Overall Coverage: $COVERAGE" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload test results
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            DerivedData/Logs/Test/**/*.xcresult
+            xcodebuild.log
+            coverage.txt
+          retention-days: 7
+          if-no-files-found: warn
