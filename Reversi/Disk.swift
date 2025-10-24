@@ -4,6 +4,7 @@ public enum Disk {
 }
 
 extension Disk: Hashable {}
+extension Disk: Codable {}
 
 extension Disk {
     /// `Disk` のすべての値を列挙した `Array` 、 `[.dark, .light]` を返します。

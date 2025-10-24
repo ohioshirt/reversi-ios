@@ -2,7 +2,7 @@ import Foundation
 
 /// リバーシの8x8盤面を表す構造体
 /// 各マスには、黒ディスク、白ディスク、または空のいずれかが入る
-public struct Board: Equatable {
+public struct Board: Equatable, Codable {
     /// 盤面の幅
     public static let width = 8
 

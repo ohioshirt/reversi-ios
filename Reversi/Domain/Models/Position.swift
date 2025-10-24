@@ -2,7 +2,7 @@ import Foundation
 
 /// リバーシ盤面上の座標を表す構造体
 /// 8x8盤面での位置を(x, y)で表現（0-indexed）
-public struct Position: Equatable, Hashable {
+public struct Position: Equatable, Hashable, Codable {
     /// x座標（0-7の範囲、左から右へ）
     public let x: Int
 
