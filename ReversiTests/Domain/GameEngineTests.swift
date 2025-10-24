@@ -131,4 +131,126 @@ final class GameEngineTests: XCTestCase {
         // Then: 有効な手はゼロ
         XCTAssertEqual(validMoves.count, 0, "挟めないので有効な手はない")
     }
+
+    // MARK: - placeDisk テスト
+
+    func test_初期盤面に黒を配置_1つのディスクが反転される() {
+        // Given: リバーシの初期配置
+        var board = Board.initial()
+        let position = Position(x: 2, y: 3)
+
+        // When: (2,3)に黒を配置
+        let flipped = engine.placeDisk(at: position, for: .dark, on: &board)
+
+        // Then: (3,3)の白ディスクが反転される
+        XCTAssertEqual(flipped.count, 1, "1つのディスクが反転")
+        XCTAssertTrue(flipped.contains(Position(x: 3, y: 3)), "(3,3)が反転")
+        XCTAssertEqual(board.disk(at: position), .dark, "(2,3)に黒が配置される")
+        XCTAssertEqual(board.disk(at: Position(x: 3, y: 3)), .dark, "(3,3)が黒に反転")
+    }
+
+    func test_角にディスクを配置_複数のディスクが反転される() {
+        // Given: 角の隣に相手のディスクが2つある盤面
+        var board = BoardBuilder()
+            .place(.dark, at: (0, 0))
+            .place(.light, at: (1, 0))
+            .place(.light, at: (2, 0))
+            .place(.dark, at: (3, 0))
+            .build()
+
+        // When: 角(0,0)を削除し、(3,0)から配置し直す想定
+        // 実際には(2,0)に黒を配置
+        board = BoardBuilder()
+            .place(.light, at: (1, 0))
+            .place(.light, at: (2, 0))
+            .place(.dark, at: (3, 0))
+            .build()
+        let position = Position(x: 0, y: 0)
+        let flipped = engine.placeDisk(at: position, for: .dark, on: &board)
+
+        // Then: (1,0)と(2,0)が反転される
+        XCTAssertEqual(flipped.count, 2, "2つのディスクが反転")
+        XCTAssertTrue(flipped.contains(Position(x: 1, y: 0)), "(1,0)が反転")
+        XCTAssertTrue(flipped.contains(Position(x: 2, y: 0)), "(2,0)が反転")
+    }
+
+    func test_複数方向に反転_すべての方向のディスクが反転される() {
+        // Given: 十字に相手のディスクがあり、その外側に自分のディスクがある
+        var board = BoardBuilder()
+            .place(.dark, at: (1, 3)) // 左
+            .place(.light, at: (2, 3))
+            .place(.light, at: (4, 3))
+            .place(.dark, at: (5, 3)) // 右
+            .place(.dark, at: (3, 1)) // 上
+            .place(.light, at: (3, 2))
+            .place(.light, at: (3, 4))
+            .place(.dark, at: (3, 5)) // 下
+            .build()
+
+        // When: (3,3)に黒を配置
+        let position = Position(x: 3, y: 3)
+        let flipped = engine.placeDisk(at: position, for: .dark, on: &board)
+
+        // Then: 4方向のディスクが反転
+        XCTAssertEqual(flipped.count, 4, "4方向で4つのディスクが反転")
+        XCTAssertTrue(flipped.contains(Position(x: 2, y: 3)), "左のディスク反転")
+        XCTAssertTrue(flipped.contains(Position(x: 4, y: 3)), "右のディスク反転")
+        XCTAssertTrue(flipped.contains(Position(x: 3, y: 2)), "上のディスク反転")
+        XCTAssertTrue(flipped.contains(Position(x: 3, y: 4)), "下のディスク反転")
+    }
+
+    func test_8方向すべてに反転_全方向のディスクが反転される() {
+        // Given: 8方向すべてに相手のディスクがあり、その外側に自分のディスクがある
+        var board = BoardBuilder()
+            .place(.dark, at: (1, 1)) // 左上
+            .place(.light, at: (2, 2))
+            .place(.dark, at: (3, 1)) // 上
+            .place(.light, at: (3, 2))
+            .place(.dark, at: (5, 1)) // 右上
+            .place(.light, at: (4, 2))
+            .place(.dark, at: (1, 3)) // 左
+            .place(.light, at: (2, 3))
+            .place(.dark, at: (5, 3)) // 右
+            .place(.light, at: (4, 3))
+            .place(.dark, at: (1, 5)) // 左下
+            .place(.light, at: (2, 4))
+            .place(.dark, at: (3, 5)) // 下
+            .place(.light, at: (3, 4))
+            .place(.dark, at: (5, 5)) // 右下
+            .place(.light, at: (4, 4))
+            .build()
+
+        // When: (3,3)に黒を配置
+        let position = Position(x: 3, y: 3)
+        let flipped = engine.placeDisk(at: position, for: .dark, on: &board)
+
+        // Then: 8方向すべてのディスクが反転
+        XCTAssertEqual(flipped.count, 8, "8方向で8つのディスクが反転")
+    }
+
+    func test_無効な位置に配置_空配列を返す() {
+        // Given: 初期盤面
+        var board = Board.initial()
+
+        // When: 無効な位置に配置を試みる
+        let position = Position(x: 0, y: 0) // ここには置けない
+        let flipped = engine.placeDisk(at: position, for: .dark, on: &board)
+
+        // Then: 何も反転されず、盤面も変化しない
+        XCTAssertEqual(flipped.count, 0, "無効な位置では何も反転しない")
+        XCTAssertNil(board.disk(at: position), "ディスクは配置されない")
+    }
+
+    func test_既にディスクがある位置に配置_空配列を返す() {
+        // Given: 初期盤面
+        var board = Board.initial()
+
+        // When: すでにディスクがある位置に配置を試みる
+        let position = Position(x: 3, y: 3) // すでに白ディスクがある
+        let flipped = engine.placeDisk(at: position, for: .dark, on: &board)
+
+        // Then: 何も反転されず、盤面も変化しない
+        XCTAssertEqual(flipped.count, 0, "すでにディスクがある位置では何も反転しない")
+        XCTAssertEqual(board.disk(at: position), .light, "元のディスクが残る")
+    }
 }
