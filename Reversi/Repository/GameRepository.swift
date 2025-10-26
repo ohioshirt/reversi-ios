@@ -116,14 +116,8 @@ public final class FileGameRepository: GameRepository {
         guard let turnSymbol = headerLine.first else {
             throw GameRepositoryError.invalidFormat(path: filePath)
         }
-        let currentTurn: Disk?
-        if turnSymbol == "-" {
-            currentTurn = nil
-        } else {
-            guard let disk = Disk(symbol: String(turnSymbol)) else {
-                throw GameRepositoryError.invalidFormat(path: filePath)
-            }
-            currentTurn = disk
+        guard let currentTurn = Disk?(symbol: String(turnSymbol)) else {
+            throw GameRepositoryError.invalidFormat(path: filePath)
         }
 
         // プレイヤーモードを解析
@@ -165,13 +159,10 @@ public final class FileGameRepository: GameRepository {
 
             for (x, char) in line.enumerated() {
                 let position = Position(x: x, y: y)
-                if char == "-" {
-                    board.setDisk(nil, at: position)
-                } else if let disk = Disk(symbol: String(char)) {
-                    board.setDisk(disk, at: position)
-                } else {
+                guard let disk = Disk?(symbol: String(char)) else {
                     throw GameRepositoryError.invalidFormat(path: filePath)
                 }
+                board.setDisk(disk, at: position)
             }
         }
 
