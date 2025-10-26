@@ -47,8 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		8F9F36B40779436492A33C26 /* GameRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Repository/GameRepository.swift"; sourceTree = "<group>"; };
-		B22A749589514020ABD5C5F7 /* GameRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Repository/GameRepositoryTests.swift"; sourceTree = "<group>"; };
+		8F9F36B40779436492A33C26 /* GameRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameRepository.swift"; sourceTree = "<group>"; };
+		B22A749589514020ABD5C5F7 /* GameRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GameRepositoryTests.swift"; sourceTree = "<group>"; };
 		6731CE4485B0487F9DB5B60A /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/GameViewModel.swift"; sourceTree = "<group>"; };
 		DE6B7CCBE58B4860951DDCD7 /* GameViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/GameViewModelTests.swift"; sourceTree = "<group>"; };
 		23C9725AE3FE4E4195AF9A3F /* Domain/Models/Board.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain/Models/Board.swift; sourceTree = "<group>"; };
@@ -168,8 +168,9 @@
 				2DE8F747BA7C45B49AACDE1D /* Application/PlayerMode.swift */,
 				8AD14035FC3C417985910587 /* Application/GameState.swift */,
 				5B671D1C188B469199641A24 /* Application/PlayerStrategy.swift */,
-			
-				920E3F44B8FE422CA5CCD4BB /* Repository */,);
+				6731CE4485B0487F9DB5B60A /* GameViewModel.swift */,
+				920E3F44B8FE422CA5CCD4BB /* Repository */,
+			);
 			path = Reversi;
 			sourceTree = "<group>";
 		};
@@ -184,8 +185,9 @@
 				E14CA5356E9441A9A4F179D6 /* Domain/BoardBuilder.swift */,
 				B8B7811F5A7741BD8F7E5069 /* Application/GameStateTests.swift */,
 				AE64E66E047D4AB5B834301F /* Application/ComputerStrategyTests.swift */,
-			
-				D1C1F732C81946D090059D78 /* Repository */,);
+				DE6B7CCBE58B4860951DDCD7 /* GameViewModelTests.swift */,
+				D1C1F732C81946D090059D78 /* Repository */,
+			);
 			path = ReversiTests;
 			sourceTree = "<group>";
 		};
