@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		264619E6D5774946BE542644 /* GameRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9F36B40779436492A33C26 /* GameRepository.swift */; };
+		2AFF1FCB8A8A498DA6B67838 /* GameRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22A749589514020ABD5C5F7 /* GameRepositoryTests.swift */; };
 		2AD19C141D704B22B911DF78 /* GameViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6731CE4485B0487F9DB5B60A /* GameViewModel.swift */; };
 		9D9329E93F0947D28D48E790 /* GameViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6B7CCBE58B4860951DDCD7 /* GameViewModelTests.swift */; };
 		0E9F4A5C52374A1A9DF0FE46 /* Application/PlayerStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B671D1C188B469199641A24 /* Application/PlayerStrategy.swift */; };
@@ -45,6 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8F9F36B40779436492A33C26 /* GameRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Repository/GameRepository.swift"; sourceTree = "<group>"; };
+		B22A749589514020ABD5C5F7 /* GameRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Repository/GameRepositoryTests.swift"; sourceTree = "<group>"; };
 		6731CE4485B0487F9DB5B60A /* GameViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/GameViewModel.swift"; sourceTree = "<group>"; };
 		DE6B7CCBE58B4860951DDCD7 /* GameViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Application/GameViewModelTests.swift"; sourceTree = "<group>"; };
 		23C9725AE3FE4E4195AF9A3F /* Domain/Models/Board.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain/Models/Board.swift; sourceTree = "<group>"; };
@@ -94,6 +98,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D1C1F732C81946D090059D78 /* Repository */ = {
+			isa = PBXGroup;
+			children = (
+				B22A749589514020ABD5C5F7 /* GameRepositoryTests.swift */,
+			);
+			path = Repository;
+			sourceTree = "<group>";
+		};
+		920E3F44B8FE422CA5CCD4BB /* Repository */ = {
+			isa = PBXGroup;
+			children = (
+				8F9F36B40779436492A33C26 /* GameRepository.swift */,
+			);
+			path = Repository;
+			sourceTree = "<group>";
+		};
 		D636B3A123D43203007F370F /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -148,7 +168,8 @@
 				2DE8F747BA7C45B49AACDE1D /* Application/PlayerMode.swift */,
 				8AD14035FC3C417985910587 /* Application/GameState.swift */,
 				5B671D1C188B469199641A24 /* Application/PlayerStrategy.swift */,
-			);
+			
+				920E3F44B8FE422CA5CCD4BB /* Repository */,);
 			path = Reversi;
 			sourceTree = "<group>";
 		};
@@ -163,7 +184,8 @@
 				E14CA5356E9441A9A4F179D6 /* Domain/BoardBuilder.swift */,
 				B8B7811F5A7741BD8F7E5069 /* Application/GameStateTests.swift */,
 				AE64E66E047D4AB5B834301F /* Application/ComputerStrategyTests.swift */,
-			);
+			
+				D1C1F732C81946D090059D78 /* Repository */,);
 			path = ReversiTests;
 			sourceTree = "<group>";
 		};
@@ -282,7 +304,8 @@
 				D810F3D2D8BC4E8C8C81809E /* Application/GameState.swift in Sources */,
 				0E9F4A5C52374A1A9DF0FE46 /* Application/PlayerStrategy.swift in Sources */,
 			
-				2AD19C141D704B22B911DF78 /* GameViewModel.swift in Sources */,);
+				2AD19C141D704B22B911DF78 /* GameViewModel.swift in Sources */,
+				264619E6D5774946BE542644 /* GameRepository.swift in Sources */,);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D642BDC223A9FE4700396732 /* Sources */ = {
@@ -297,7 +320,8 @@
 				8D9B69BE2EADC4C00070F34E /* Domain/GameEngineTests.swift in Sources */,
 				8D9B69BF2EADC4C00070F34E /* Domain/PositionTests.swift in Sources */,
 			
-				9D9329E93F0947D28D48E790 /* GameViewModelTests.swift in Sources */,);
+				9D9329E93F0947D28D48E790 /* GameViewModelTests.swift in Sources */,
+				2AFF1FCB8A8A498DA6B67838 /* GameRepositoryTests.swift in Sources */,);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
