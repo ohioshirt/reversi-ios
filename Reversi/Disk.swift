@@ -24,6 +24,15 @@ extension Disk {
     public mutating func flip() {
         self = flipped
     }
+
+    /// Diskをシンボル文字列に変換
+    /// - Returns: "x" (dark), "o" (light)
+    public var symbol: String {
+        switch self {
+        case .dark: return "x"
+        case .light: return "o"
+        }
+    }
 }
 
 extension Optional where Wrapped == Disk {
