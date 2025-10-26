@@ -303,9 +303,10 @@
 				0FAAFE721B7746C09FD77E5E /* Application/PlayerMode.swift in Sources */,
 				D810F3D2D8BC4E8C8C81809E /* Application/GameState.swift in Sources */,
 				0E9F4A5C52374A1A9DF0FE46 /* Application/PlayerStrategy.swift in Sources */,
-			
+
 				2AD19C141D704B22B911DF78 /* GameViewModel.swift in Sources */,
-				264619E6D5774946BE542644 /* GameRepository.swift in Sources */,);
+				264619E6D5774946BE542644 /* GameRepository.swift in Sources */,
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D642BDC223A9FE4700396732 /* Sources */ = {
@@ -319,9 +320,10 @@
 				8D9B69BD2EADC4C00070F34E /* Application/GameStateTests.swift in Sources */,
 				8D9B69BE2EADC4C00070F34E /* Domain/GameEngineTests.swift in Sources */,
 				8D9B69BF2EADC4C00070F34E /* Domain/PositionTests.swift in Sources */,
-			
+
 				9D9329E93F0947D28D48E790 /* GameViewModelTests.swift in Sources */,
-				2AFF1FCB8A8A498DA6B67838 /* GameRepositoryTests.swift in Sources */,);
+				2AFF1FCB8A8A498DA6B67838 /* GameRepositoryTests.swift in Sources */,
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
