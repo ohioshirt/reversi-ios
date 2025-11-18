@@ -238,16 +238,15 @@ extension ViewController {
 extension ViewController {
     /// ゲームの状態を初期化し、新しいゲームを開始します。
     func newGame() {
-        boardView.reset()
-        turn = .dark
-        
+        // ViewModelで新しいゲームを開始
+        viewModel.newGame()
+
+        // プレイヤーモードをマニュアルにリセット
         for playerControl in playerControls {
             playerControl.selectedSegmentIndex = Player.manual.rawValue
         }
 
-        updateMessageViews()
-        updateCountLabels()
-        
+        // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
         try? saveGame()
     }
     
@@ -266,31 +265,27 @@ extension ViewController {
     /// もし、次のプレイヤーに有効な手が存在しない場合、パスとなります。
     /// 両プレイヤーに有効な手がない場合、ゲームの勝敗を表示します。
     func nextTurn() {
-        guard var turn = self.turn else { return }
+        // ViewModelのplaceDiskがターン管理を行うため、ここではUI更新のみ
+        // ターン情報はViewModelのstateから取得
+        guard let currentTurn = viewModel.state.currentTurn else {
+            // ゲーム終了
+            return
+        }
 
-        turn.flip()
-        
-        if validMoves(for: turn).isEmpty {
-            if validMoves(for: turn.flipped).isEmpty {
-                self.turn = nil
-                updateMessageViews()
-            } else {
-                self.turn = turn
-                updateMessageViews()
-                
-                let alertController = UIAlertController(
-                    title: "Pass",
-                    message: "Cannot place a disk.",
-                    preferredStyle: .alert
-                )
-                alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-                    self?.nextTurn()
-                })
-                present(alertController, animated: true)
-            }
+        // パスの判定
+        let currentValidMoves = validMoves(for: currentTurn)
+        if currentValidMoves.isEmpty {
+            // パスアラートを表示
+            let alertController = UIAlertController(
+                title: "Pass",
+                message: "Cannot place a disk.",
+                preferredStyle: .alert
+            )
+            alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
+                self?.waitForPlayer()
+            })
+            present(alertController, animated: true)
         } else {
-            self.turn = turn
-            updateMessageViews()
             waitForPlayer()
         }
     }
