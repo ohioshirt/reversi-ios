@@ -33,10 +33,7 @@ class ViewController: UIViewController {
     /// Combineのキャンセル管理
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Legacy Properties (段階的に削除予定)
-
-    /// どちらの色のプレイヤーのターンかを表します。ゲーム終了時は `nil` です。
-    private var turn: Disk? = .dark
+    // MARK: - Animation Management
 
     private var animationCanceller: Canceller?
     private var isAnimating: Bool { animationCanceller != nil }
@@ -98,9 +95,6 @@ class ViewController: UIViewController {
                 boardView.setDisk(disk, atX: x, y: y, animated: false)
             }
         }
-
-        // ターン情報を同期
-        turn = state.currentTurn
 
         // UI要素を更新
         updateMessageViews()
@@ -257,7 +251,7 @@ extension ViewController {
     
     /// プレイヤーの行動を待ちます。
     func waitForPlayer() {
-        guard let turn = self.turn else { return }
+        guard let turn = viewModel.state.currentTurn else { return }
         switch Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! {
         case .manual:
             break
@@ -297,7 +291,7 @@ extension ViewController {
     
     /// "Computer" が選択されている場合のプレイヤーの行動を決定します。
     func playTurnOfComputer() {
-        guard let turn = self.turn else { preconditionFailure() }
+        guard let turn = viewModel.state.currentTurn else { preconditionFailure() }
         let (x, y) = validMoves(for: turn).randomElement()!
 
         playerActivityIndicators[turn.index].startAnimating()
@@ -334,7 +328,7 @@ extension ViewController {
     
     /// 現在の状況に応じてメッセージを表示します。
     func updateMessageViews() {
-        switch turn {
+        switch viewModel.state.currentTurn {
         case .some(let side):
             messageDiskSizeConstraint.constant = messageDiskSize
             messageDiskView.disk = side
@@ -396,7 +390,7 @@ extension ViewController {
         }
 
         // コンピュータモードに変更された場合、即座にプレイ
-        if !isAnimating, side == turn, case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
+        if !isAnimating, side == viewModel.state.currentTurn, case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
             playTurnOfComputer()
         }
     }
@@ -408,7 +402,7 @@ extension ViewController: BoardViewDelegate {
     /// - Parameter x: セルの列です。
     /// - Parameter y: セルの行です。
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
-        guard let turn = turn else { return }
+        guard let turn = viewModel.state.currentTurn else { return }
         if isAnimating { return }
         guard case .manual = Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! else { return }
         // try? because doing nothing when an error occurs
