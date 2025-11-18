@@ -380,13 +380,17 @@ extension ViewController {
     /// プレイヤーのモードが変更された場合に呼ばれるハンドラーです。
     @IBAction func changePlayerControlSegment(_ sender: UISegmentedControl) {
         let side: Disk = Disk(index: playerControls.firstIndex(of: sender)!)
-        
+
+        // ViewModelのプレイヤーモードを更新
+        viewModel.togglePlayerMode(for: side)
+
         try? saveGame()
-        
+
         if let canceller = playerCancellers[side] {
             canceller.cancel()
         }
-        
+
+        // コンピュータモードに変更された場合、即座にプレイ
         if !isAnimating, side == turn, case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
             playTurnOfComputer()
         }
