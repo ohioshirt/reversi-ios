@@ -27,6 +27,9 @@ class ViewController: UIViewController {
     /// ゲームViewModel（Application層）
     private let viewModel: GameViewModel
 
+    /// ゲームリポジトリ（Repository層）
+    private let repository: GameRepository
+
     /// Combineのキャンセル管理
     private var cancellables = Set<AnyCancellable>()
 
@@ -42,9 +45,10 @@ class ViewController: UIViewController {
 
     // MARK: - Initialization
 
-    init?(coder: NSCoder, gameEngine: GameEngine, viewModel: GameViewModel) {
+    init?(coder: NSCoder, gameEngine: GameEngine, viewModel: GameViewModel, repository: GameRepository) {
         self.gameEngine = gameEngine
         self.viewModel = viewModel
+        self.repository = repository
         super.init(coder: coder)
     }
 
@@ -52,6 +56,7 @@ class ViewController: UIViewController {
         // デフォルトの依存性を作成
         self.gameEngine = GameEngine()
         self.viewModel = GameViewModel(engine: GameEngine())
+        self.repository = FileGameRepository()
         super.init(coder: coder)
     }
     
@@ -416,94 +421,27 @@ extension ViewController: BoardViewDelegate {
 // MARK: Save and Load
 
 extension ViewController {
-    private var path: String {
-        (NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true).first! as NSString).appendingPathComponent("Game")
-    }
-    
     /// ゲームの状態をファイルに書き出し、保存します。
     func saveGame() throws {
-        var output: String = ""
-        output += turn.symbol
-        for side in Disk.sides {
-            output += playerControls[side.index].selectedSegmentIndex.description
-        }
-        output += "\n"
-        
-        for y in boardView.yRange {
-            for x in boardView.xRange {
-                output += boardView.diskAt(x: x, y: y).symbol
-            }
-            output += "\n"
-        }
-        
-        do {
-            try output.write(toFile: path, atomically: true, encoding: .utf8)
-        } catch let error {
-            throw FileIOError.read(path: path, cause: error)
-        }
+        // ViewModelの状態をGameRepositoryで保存
+        try repository.saveGame(viewModel.state)
     }
-    
+
     /// ゲームの状態をファイルから読み込み、復元します。
     func loadGame() throws {
-        let input = try String(contentsOfFile: path, encoding: .utf8)
-        var lines: ArraySlice<Substring> = input.split(separator: "\n")[...]
-        
-        guard var line = lines.popFirst() else {
-            throw FileIOError.read(path: path, cause: nil)
-        }
-        
-        do { // turn
-            guard
-                let diskSymbol = line.popFirst(),
-                let disk = Optional<Disk>(symbol: diskSymbol.description)
-            else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-            turn = disk
-        }
+        // GameRepositoryから状態を読み込み
+        let loadedState = try repository.loadGame()
 
-        // players
+        // ViewModelの状態を更新
+        viewModel.state = loadedState
+
+        // プレイヤーモードUIを同期
         for side in Disk.sides {
-            guard
-                let playerSymbol = line.popFirst(),
-                let playerNumber = Int(playerSymbol.description),
-                let player = Player(rawValue: playerNumber)
-            else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-            playerControls[side.index].selectedSegmentIndex = player.rawValue
+            let mode = loadedState.playerMode(for: side)
+            playerControls[side.index].selectedSegmentIndex = mode == .manual ? 0 : 1
         }
 
-        do { // board
-            guard lines.count == boardView.height else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-            
-            var y = 0
-            while let line = lines.popFirst() {
-                var x = 0
-                for character in line {
-                    let disk = Disk?(symbol: "\(character)").flatMap { $0 }
-                    boardView.setDisk(disk, atX: x, y: y, animated: false)
-                    x += 1
-                }
-                guard x == boardView.width else {
-                    throw FileIOError.read(path: path, cause: nil)
-                }
-                y += 1
-            }
-            guard y == boardView.height else {
-                throw FileIOError.read(path: path, cause: nil)
-            }
-        }
-
-        updateMessageViews()
-        updateCountLabels()
-    }
-    
-    enum FileIOError: Error {
-        case write(path: String, cause: Error?)
-        case read(path: String, cause: Error?)
+        // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
     }
 }
 
