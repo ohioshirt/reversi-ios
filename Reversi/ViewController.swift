@@ -85,8 +85,21 @@ class ViewController: UIViewController {
 
     /// ViewModelのStateとBoardViewを同期
     private func syncBoardViewWithState(_ state: GameState) {
-        // 盤面の同期（後で実装）
-        // TODO: Board -> BoardView の同期ロジック
+        // 盤面のすべてのセルを同期
+        for y in 0..<Board.height {
+            for x in 0..<Board.width {
+                let position = Position(x: x, y: y)
+                let disk = state.board.disk(at: position)
+                boardView.setDisk(disk, atX: x, y: y, animated: false)
+            }
+        }
+
+        // ターン情報を同期
+        turn = state.currentTurn
+
+        // UI要素を更新
+        updateMessageViews()
+        updateCountLabels()
     }
     
     private var viewHasAppeared: Bool = false
@@ -106,30 +119,16 @@ extension ViewController {
     /// - Parameter side: 数えるディスクの色です。
     /// - Returns: `side` で指定された色のディスクの、盤上の枚数です。
     func countDisks(of side: Disk) -> Int {
-        var count = 0
-        
-        for y in boardView.yRange {
-            for x in boardView.xRange {
-                if boardView.diskAt(x: x, y: y) == side {
-                    count +=  1
-                }
-            }
-        }
-        
-        return count
+        // ViewModelに委譲
+        return viewModel.diskCount(for: side)
     }
-    
+
     /// 盤上に置かれたディスクの枚数が多い方の色を返します。
     /// 引き分けの場合は `nil` が返されます。
     /// - Returns: 盤上に置かれたディスクの枚数が多い方の色です。引き分けの場合は `nil` を返します。
     func sideWithMoreDisks() -> Disk? {
-        let darkCount = countDisks(of: .dark)
-        let lightCount = countDisks(of: .light)
-        if darkCount == lightCount {
-            return nil
-        } else {
-            return darkCount > lightCount ? .dark : .light
-        }
+        // ViewModelに委譲
+        return viewModel.winner()
     }
     
     private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
@@ -180,23 +179,17 @@ extension ViewController {
     /// - Parameter y: セルの行です。
     /// - Returns: 指定されたセルに `disk` を置ける場合は `true` を、置けない場合は `false` を返します。
     func canPlaceDisk(_ disk: Disk, atX x: Int, y: Int) -> Bool {
-        !flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y).isEmpty
+        // ViewModelに委譲
+        let position = Position(x: x, y: y)
+        return gameEngine.canPlaceDisk(at: position, for: disk, in: viewModel.state.board)
     }
-    
+
     /// `side` で指定された色のディスクを置ける盤上のセルの座標をすべて返します。
     /// - Returns: `side` で指定された色のディスクを置ける盤上のすべてのセルの座標の配列です。
     func validMoves(for side: Disk) -> [(x: Int, y: Int)] {
-        var coordinates: [(Int, Int)] = []
-        
-        for y in boardView.yRange {
-            for x in boardView.xRange {
-                if canPlaceDisk(side, atX: x, y: y) {
-                    coordinates.append((x, y))
-                }
-            }
-        }
-        
-        return coordinates
+        // ViewModelに委譲
+        let positions = viewModel.validMoves(for: side)
+        return positions.map { (x: $0.x, y: $0.y) }
     }
 
     /// `x`, `y` で指定されたセルに `disk` を置きます。
