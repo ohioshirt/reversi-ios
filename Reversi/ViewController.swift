@@ -132,45 +132,11 @@ extension ViewController {
     }
     
     private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
-        let directions = [
-            (x: -1, y: -1),
-            (x:  0, y: -1),
-            (x:  1, y: -1),
-            (x:  1, y:  0),
-            (x:  1, y:  1),
-            (x:  0, y:  1),
-            (x: -1, y:  0),
-            (x: -1, y:  1),
-        ]
-        
-        guard boardView.diskAt(x: x, y: y) == nil else {
-            return []
-        }
-        
-        var diskCoordinates: [(Int, Int)] = []
-        
-        for direction in directions {
-            var x = x
-            var y = y
-            
-            var diskCoordinatesInLine: [(Int, Int)] = []
-            flipping: while true {
-                x += direction.x
-                y += direction.y
-                
-                switch (disk, boardView.diskAt(x: x, y: y)) { // Uses tuples to make patterns exhaustive
-                case (.dark, .some(.dark)), (.light, .some(.light)):
-                    diskCoordinates.append(contentsOf: diskCoordinatesInLine)
-                    break flipping
-                case (.dark, .some(.light)), (.light, .some(.dark)):
-                    diskCoordinatesInLine.append((x, y))
-                case (_, .none):
-                    break flipping
-                }
-            }
-        }
-        
-        return diskCoordinates
+        // GameEngineに委譲
+        let position = Position(x: x, y: y)
+        var tempBoard = viewModel.state.board
+        let flippedPositions = gameEngine.placeDisk(at: position, for: disk, on: &tempBoard)
+        return flippedPositions.map { (x: $0.x, y: $0.y) }
     }
     
     /// `x`, `y` で指定されたセルに、 `disk` が置けるかを調べます。
@@ -201,11 +167,12 @@ extension ViewController {
     ///     もし `animated` が `false` の場合、このクロージャは次の run loop サイクルの初めに実行されます。
     /// - Throws: もし `disk` を `x`, `y` で指定されるセルに置けない場合、 `DiskPlacementError` を `throw` します。
     func placeDisk(_ disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) throws {
+        // 反転するディスクの座標を取得（アニメーション用）
         let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
         if diskCoordinates.isEmpty {
             throw DiskPlacementError(disk: disk, x: x, y: y)
         }
-        
+
         if isAnimated {
             let cleanUp: () -> Void = { [weak self] in
                 self?.animationCanceller = nil
@@ -217,20 +184,23 @@ extension ViewController {
                 if canceller.isCancelled { return }
                 cleanUp()
 
-                completion?(isFinished)
-                try? self.saveGame()
-                self.updateCountLabels()
+                // ViewModelの状態を更新（非同期）
+                Task { @MainActor in
+                    let position = Position(x: x, y: y)
+                    _ = await self.viewModel.placeDisk(at: position)
+                    // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
+                    try? self.saveGame()
+                    completion?(isFinished)
+                }
             }
         } else {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                for (x, y) in diskCoordinates {
-                    self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                }
-                completion?(true)
+            // 非アニメーション時はViewModelで直接更新
+            Task { @MainActor in
+                let position = Position(x: x, y: y)
+                let success = await self.viewModel.placeDisk(at: position)
+                // ViewModelの状態更新により、Combineバインディングで自動的にBoardViewが更新される
                 try? self.saveGame()
-                self.updateCountLabels()
+                completion?(success)
             }
         }
     }
