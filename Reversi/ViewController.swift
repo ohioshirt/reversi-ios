@@ -1,8 +1,9 @@
 import UIKit
+import Combine
 
 class ViewController: UIViewController {
     @IBOutlet private var boardView: BoardView!
-    
+
     @IBOutlet private var messageDiskView: DiskView!
     @IBOutlet private var messageLabel: UILabel!
     @IBOutlet private var messageDiskSizeConstraint: NSLayoutConstraint!
@@ -13,30 +14,79 @@ class ViewController: UIViewController {
     /// 元のサイズで表示する必要があり、
     /// その際に `messageDiskSize` に保管された値を使います。
     private var messageDiskSize: CGFloat!
-    
+
     @IBOutlet private var playerControls: [UISegmentedControl]!
     @IBOutlet private var countLabels: [UILabel]!
     @IBOutlet private var playerActivityIndicators: [UIActivityIndicatorView]!
-    
+
+    // MARK: - New Architecture Components
+
+    /// ゲームエンジン（Domain層）
+    private let gameEngine: GameEngine
+
+    /// ゲームViewModel（Application層）
+    private let viewModel: GameViewModel
+
+    /// Combineのキャンセル管理
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Legacy Properties (段階的に削除予定)
+
     /// どちらの色のプレイヤーのターンかを表します。ゲーム終了時は `nil` です。
     private var turn: Disk? = .dark
-    
+
     private var animationCanceller: Canceller?
     private var isAnimating: Bool { animationCanceller != nil }
-    
+
     private var playerCancellers: [Disk: Canceller] = [:]
+
+    // MARK: - Initialization
+
+    init?(coder: NSCoder, gameEngine: GameEngine, viewModel: GameViewModel) {
+        self.gameEngine = gameEngine
+        self.viewModel = viewModel
+        super.init(coder: coder)
+    }
+
+    required init?(coder: NSCoder) {
+        // デフォルトの依存性を作成
+        self.gameEngine = GameEngine()
+        self.viewModel = GameViewModel(engine: GameEngine())
+        super.init(coder: coder)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
-        
+
+        // ViewModelの状態変更を監視
+        setupBindings()
+
         do {
             try loadGame()
         } catch _ {
             newGame()
         }
+    }
+
+    // MARK: - ViewModel Bindings
+
+    /// ViewModelの状態変更をUIに反映するバインディングを設定
+    private func setupBindings() {
+        // 盤面の変更を監視
+        viewModel.$state
+            .sink { [weak self] state in
+                self?.syncBoardViewWithState(state)
+            }
+            .store(in: &cancellables)
+    }
+
+    /// ViewModelのStateとBoardViewを同期
+    private func syncBoardViewWithState(_ state: GameState) {
+        // 盤面の同期（後で実装）
+        // TODO: Board -> BoardView の同期ロジック
     }
     
     private var viewHasAppeared: Bool = false
