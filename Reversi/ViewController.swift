@@ -232,6 +232,9 @@ extension ViewController {
 
                         // クリーンアップはViewModel更新後に実行（競合状態を回避）
                         cleanUp()
+
+                        // Combineバインディングの伝播を保証するため、yieldで制御を譲る
+                        await Task.yield()
                         completion?(animationCompleted && placementSuccess)
                     }
                 }
@@ -240,6 +243,9 @@ extension ViewController {
                 if success {
                     try? self.saveGame()
                 }
+
+                // Combineバインディングの伝播を保証するため、yieldで制御を譲る
+                await Task.yield()
                 completion?(success)
             }
         }
