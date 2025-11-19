@@ -97,8 +97,7 @@ class ViewController: UIViewController {
             .store(in: &cancellables)
 
         // パスイベントを監視
-        viewModel.$passEvent
-            .compactMap { $0 }
+        viewModel.passEvent
             .sink { [weak self] passEvent in
                 self?.showPassAlert(for: passEvent.passedPlayer)
             }
@@ -113,7 +112,6 @@ class ViewController: UIViewController {
             preferredStyle: .alert
         )
         alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-            self?.viewModel.clearPassEvent()
             self?.waitForPlayer()
         })
         present(alertController, animated: true)

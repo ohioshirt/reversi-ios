@@ -20,21 +20,19 @@ public class GameViewModel: ObservableObject {
     /// ゲームの状態
     @Published public var state: GameState
 
-    /// パスイベント（nilでない場合はパスが発生したことを示す）
+    /// パスイベントを発行するSubject
     ///
     /// ライフサイクル:
-    /// - 設定: advanceTurn()内で次のプレイヤーがパスする場合に自動設定
-    /// - クリア: clearPassEvent()を明示的に呼ぶか、newGame()でリセット
-    /// - 消費: ViewControllerがCombineバインディング経由で検知し、パスアラートを表示後にクリア
+    /// - 発行: advanceTurn()内で次のプレイヤーがパスする場合にsend()で発行
+    /// - 購読: ViewControllerがsink経由で検知し、パスアラートを表示
     ///
-    /// 注: イベントは明示的にクリアされるまで永続します。
-    /// UIレイヤーは、イベントを検知したら適切にclearPassEvent()を呼ぶ責任があります。
-    @Published public var passEvent: PassEvent?
+    /// 注: PassthroughSubjectはイベントを永続化せず、発行時のみ通知します。
+    /// 手動でのクリア処理は不要です。
+    public let passEvent = PassthroughSubject<PassEvent, Never>()
 
     public init(engine: GameEngine, initialState: GameState = GameState()) {
         self.engine = engine
         self.state = initialState
-        self.passEvent = nil
     }
 
     /// 指定されたディスクの枚数を返す
@@ -83,7 +81,7 @@ public class GameViewModel: ObservableObject {
         }
 
         // 次のプレイヤーがパスの場合
-        passEvent = PassEvent(passedPlayer: next)
+        passEvent.send(PassEvent(passedPlayer: next))
 
         // 現在のプレイヤーに有効な手があるか確認
         if !validMoves(for: current).isEmpty {
@@ -103,21 +101,6 @@ public class GameViewModel: ObservableObject {
             darkPlayerMode: state.darkPlayerMode,
             lightPlayerMode: state.lightPlayerMode
         )
-        passEvent = nil
-    }
-
-    /// パスイベントをクリアします。
-    ///
-    /// パスアラートを表示した後、または状態をリセットする際に呼び出します。
-    /// clearPassEvent()を呼ばないと、イベントは永続し、stale（古い）状態になる可能性があります。
-    ///
-    /// 推奨される呼び出しタイミング:
-    /// - パスアラートのDismissボタンが押された直後
-    /// - ゲームリセット時（newGame()内で自動的にクリアされます）
-    /// - フロー中断時（キャンセル等）
-    @MainActor
-    public func clearPassEvent() {
-        passEvent = nil
     }
 
     /// プレイヤーモードを切り替え
