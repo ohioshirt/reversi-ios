@@ -58,6 +58,15 @@ public class GameViewModel: ObservableObject {
         return engine.validMoves(for: disk, in: state.board)
     }
 
+    /// 指定位置にディスクを配置した場合に反転されるディスクの座標を取得
+    /// - Parameters:
+    ///   - position: ディスクを配置する座標
+    ///   - disk: 配置するディスク
+    /// - Returns: 反転されるディスクの座標の配列（無効な手の場合は空配列）
+    public func flippedDiskPositions(at position: Position, for disk: Disk) -> [Position] {
+        return engine.flippedDiskPositions(at: position, for: disk, in: state.board)
+    }
+
     /// ディスクを配置
     /// - Parameter position: 配置する座標
     /// - Returns: 配置に成功したかどうか

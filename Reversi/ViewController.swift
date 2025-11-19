@@ -227,8 +227,8 @@ extension ViewController {
         let position = Position(x: x, y: y)
 
         Task {
-            // 配置検証と反転座標取得（ViewModelレイヤーで一度だけ実行）
-            let flippedPositions = gameEngine.flippedDiskPositions(at: position, for: disk, in: viewModel.state.board)
+            // 配置検証と反転座標取得（ViewModelレイヤーで実行）
+            let flippedPositions = viewModel.flippedDiskPositions(at: position, for: disk)
 
             guard !flippedPositions.isEmpty else {
                 // 無効な手の場合は何もせずに終了
@@ -250,7 +250,8 @@ extension ViewController {
                 if canceller.isCancelled { return }
 
                 // ViewModelの状態を更新（非同期）
-                // 注: すでに検証済みなので、placeDiskは成功するはず
+                // 注: 上記で検証済みなので、placeDiskは通常成功するはず
+                // （ただし、ViewModelは独立して動作できるよう内部で再度検証を実行します）
                 let placementSuccess = await self.viewModel.placeDisk(at: position)
                 if placementSuccess {
                     try? self.saveGame()
