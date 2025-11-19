@@ -12,6 +12,8 @@ public protocol GameRepository {
 /// ファイルベースのGameRepository実装
 public class FileGameRepository: GameRepository {
     private let fileURL: URL
+    private static let legacyFileName = "Game"
+    private static let currentFileName = "reversi.json"
 
     public init(fileURL: URL? = nil) {
         if let fileURL = fileURL {
@@ -26,13 +28,34 @@ public class FileGameRepository: GameRepository {
                 appropriateFor: nil,
                 create: true
             ) {
-                self.fileURL = documentDirectoryURL.appendingPathComponent("reversi.json")
+                self.fileURL = documentDirectoryURL.appendingPathComponent(Self.currentFileName)
                 print("[GameRepository] Using documents directory: \(self.fileURL.path)")
+
+                // 後方互換性: 旧ファイル名からのマイグレーション
+                Self.migrateLegacyFileIfNeeded(in: documentDirectoryURL)
             } else {
                 // フォールバック: 一時ディレクトリを使用
-                self.fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("reversi.json")
+                self.fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(Self.currentFileName)
                 print("[GameRepository] WARNING: Documents directory unavailable, falling back to temporary directory: \(self.fileURL.path)")
                 print("[GameRepository] NOTE: Saved games in temporary directory may be deleted by the system.")
+            }
+        }
+    }
+
+    /// 旧ファイル名("Game")から新ファイル名("reversi.json")へのマイグレーション
+    private static func migrateLegacyFileIfNeeded(in directory: URL) {
+        let legacyURL = directory.appendingPathComponent(legacyFileName)
+        let currentURL = directory.appendingPathComponent(currentFileName)
+
+        let fileManager = FileManager.default
+
+        // 旧ファイルが存在し、新ファイルが存在しない場合のみマイグレーション
+        if fileManager.fileExists(atPath: legacyURL.path) && !fileManager.fileExists(atPath: currentURL.path) {
+            do {
+                try fileManager.moveItem(at: legacyURL, to: currentURL)
+                print("[GameRepository] Successfully migrated '\(legacyFileName)' to '\(currentFileName)'")
+            } catch {
+                print("[GameRepository] WARNING: Failed to migrate legacy file: \(error)")
             }
         }
     }
