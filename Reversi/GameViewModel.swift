@@ -26,9 +26,10 @@ public class GameViewModel: ObservableObject {
     /// - 発行: advanceTurn()内で次のプレイヤーがパスする場合にsend()で発行
     /// - 購読: ViewControllerがsink経由で検知し、パスアラートを表示
     ///
-    /// 注: PassthroughSubjectはイベントを永続化せず、発行時のみ通知します。
-    /// 手動でのクリア処理は不要です。
-    public let passEvent = PassthroughSubject<PassEvent, Never>()
+    /// 注:
+    /// - PassthroughSubjectはイベントを永続化せず、発行時のみ通知します。手動でのクリア処理は不要です。
+    /// - @MainActorでマークされており、イベントは常にメインスレッドで発行・購読されます。
+    @MainActor public let passEvent = PassthroughSubject<PassEvent, Never>()
 
     public init(engine: GameEngine, initialState: GameState = GameState()) {
         self.engine = engine
