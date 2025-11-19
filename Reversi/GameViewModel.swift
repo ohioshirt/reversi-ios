@@ -16,6 +16,9 @@ public struct PassEvent {
 ///
 /// ViewModelはUI関連の状態を管理するため、MainActorで実行されます。
 /// これにより、すべての状態変更とイベント発行がメインスレッドで安全に実行されることが保証されます。
+///
+/// 注: MainActorの明示的な付与はUIKit-Combine統合パターン（例: ViewControllerからの購読）でのスレッド安全性確保のためです。
+/// 純粋なSwiftUI環境では、ObservableObjectのPublishedプロパティは自動的にMainActorで保護されるため、明示的なMainActorは不要です。
 @MainActor
 public class GameViewModel: ObservableObject {
     /// ゲームエンジン
