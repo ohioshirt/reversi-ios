@@ -194,44 +194,47 @@ extension ViewController {
     /// - Parameter completion: アニメーション完了時に実行されるクロージャです。
     ///     このクロージャは値を返さず、アニメーションが完了したかを示す真偽値を受け取ります。
     ///     もし `animated` が `false` の場合、このクロージャは次の run loop サイクルの初めに実行されます。
-    /// - Throws: もし `disk` を `x`, `y` で指定されるセルに置けない場合、 `DiskPlacementError` を `throw` します。
-    func placeDisk(_ disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) throws {
-        // 反転するディスクの座標を取得（アニメーション用）
-        let diskCoordinates = flippedDiskCoordinatesByPlacingDisk(disk, atX: x, y: y)
-        if diskCoordinates.isEmpty {
-            throw DiskPlacementError(disk: disk, x: x, y: y)
-        }
+    ///
+    /// 注: 配置の検証はViewModelレイヤーで一度だけ実行されます。
+    /// 無効な配置の場合、completionにfalseが渡されます。
+    func placeDisk(_ disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
+        let position = Position(x: x, y: y)
 
-        if isAnimated {
-            let cleanUp: () -> Void = { [weak self] in
-                self?.animationCanceller = nil
+        Task { @MainActor in
+            // 配置検証と反転座標取得（ViewModelレイヤーで一度だけ実行）
+            let flippedPositions = gameEngine.flippedDiskPositions(at: position, for: disk, in: viewModel.state.board)
+
+            guard !flippedPositions.isEmpty else {
+                // 無効な手の場合は何もせずに終了
+                completion?(false)
+                return
             }
-            animationCanceller = Canceller(cleanUp)
-            animateSettingDisks(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] animationCompleted in
-                guard let self = self else { return }
-                guard let canceller = self.animationCanceller else { return }
-                if canceller.isCancelled { return }
-                cleanUp()
 
-                // ViewModelの状態を更新（非同期）
-                // animationCompletedをキャプチャしてTask内で使用
-                Task { @MainActor in
-                    let position = Position(x: x, y: y)
-                    let placementSuccess = await self.viewModel.placeDisk(at: position)
-                    // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
-                    if placementSuccess {
-                        try? self.saveGame()
-                    }
-                    // アニメーションとディスク配置の両方が成功した場合のみtrueを返す
-                    completion?(animationCompleted && placementSuccess)
+            let diskCoordinates = flippedPositions.map { ($0.x, $0.y) }
+
+            if isAnimated {
+                let cleanUp: () -> Void = { [weak self] in
+                    self?.animationCanceller = nil
                 }
-            }
-        } else {
-            // 非アニメーション時はViewModelで直接更新
-            Task { @MainActor in
-                let position = Position(x: x, y: y)
+                self.animationCanceller = Canceller(cleanUp)
+                self.animateSettingDisks(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] animationCompleted in
+                    guard let self = self else { return }
+                    guard let canceller = self.animationCanceller else { return }
+                    if canceller.isCancelled { return }
+                    cleanUp()
+
+                    // ViewModelの状態を更新（非同期）
+                    // 注: すでに検証済みなので、placeDiskは成功するはず
+                    Task { @MainActor in
+                        let placementSuccess = await self.viewModel.placeDisk(at: position)
+                        if placementSuccess {
+                            try? self.saveGame()
+                        }
+                        completion?(animationCompleted && placementSuccess)
+                    }
+                }
+            } else {
                 let success = await self.viewModel.placeDisk(at: position)
-                // ViewModelの状態更新により、Combineバインディングで自動的にBoardViewが更新される
                 if success {
                     try? self.saveGame()
                 }
@@ -320,8 +323,8 @@ extension ViewController {
             guard let self = self else { return }
             if canceller.isCancelled { return }
             cleanUp()
-            
-            try! self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
+
+            self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
                 self?.nextTurn()
             }
         }
@@ -419,8 +422,8 @@ extension ViewController: BoardViewDelegate {
         guard let turn = viewModel.state.currentTurn else { return }
         if isAnimating { return }
         guard case .manual = Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! else { return }
-        // try? because doing nothing when an error occurs
-        try? placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
+        // 配置が無効な場合はcompletionでfalseが返される
+        placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
             self?.nextTurn()
         }
     }
@@ -465,22 +468,16 @@ extension ViewController {
 final class Canceller {
     private(set) var isCancelled: Bool = false
     private let body: (() -> Void)?
-    
+
     init(_ body: (() -> Void)?) {
         self.body = body
     }
-    
+
     func cancel() {
         if isCancelled { return }
         isCancelled = true
         body?()
     }
-}
-
-struct DiskPlacementError: Error {
-    let disk: Disk
-    let x: Int
-    let y: Int
 }
 
 // MARK: File-private extensions
