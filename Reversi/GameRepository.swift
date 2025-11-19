@@ -20,14 +20,20 @@ public class FileGameRepository: GameRepository {
             // デフォルトのファイルパス
             // ドキュメントディレクトリへのアクセスを試みる
             // 失敗した場合は一時ディレクトリを使用（サンドボックス制限等で失敗する可能性があるため）
-            let documentDirectoryURL = (try? FileManager.default.url(
+            if let documentDirectoryURL = try? FileManager.default.url(
                 for: .documentDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: true
-            )) ?? FileManager.default.temporaryDirectory
-
-            self.fileURL = documentDirectoryURL.appendingPathComponent("reversi.json")
+            ) {
+                self.fileURL = documentDirectoryURL.appendingPathComponent("reversi.json")
+                print("[GameRepository] Using documents directory: \(self.fileURL.path)")
+            } else {
+                // フォールバック: 一時ディレクトリを使用
+                self.fileURL = FileManager.default.temporaryDirectory.appendingPathComponent("reversi.json")
+                print("[GameRepository] WARNING: Documents directory unavailable, falling back to temporary directory: \(self.fileURL.path)")
+                print("[GameRepository] NOTE: Saved games in temporary directory may be deleted by the system.")
+            }
         }
     }
 
