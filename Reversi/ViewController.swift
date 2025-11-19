@@ -253,7 +253,7 @@ extension ViewController {
                     try? self.saveGame()
                 }
 
-                // クリーンアップはViewModel更新後に実行（競合状態を回避）
+                // アニメーションキャンセラーをクリーンアップ
                 cleanUp()
                 completion?(animationCompleted && placementSuccess)
             } else {
