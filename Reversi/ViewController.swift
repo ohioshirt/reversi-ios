@@ -51,8 +51,9 @@ class ViewController: UIViewController {
 
     required init?(coder: NSCoder) {
         // デフォルトの依存性を作成
-        self.gameEngine = GameEngine()
-        self.viewModel = GameViewModel(engine: GameEngine())
+        let engine = GameEngine()
+        self.gameEngine = engine
+        self.viewModel = GameViewModel(engine: engine)
         self.repository = FileGameRepository()
         super.init(coder: coder)
     }
