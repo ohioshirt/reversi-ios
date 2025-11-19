@@ -222,6 +222,7 @@ extension ViewController {
     ///
     /// 注: 配置の検証はViewModelレイヤーで一度だけ実行されます。
     /// 無効な配置の場合、completionにfalseが渡されます。
+    @MainActor
     func placeDisk(_ disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
         let position = Position(x: x, y: y)
 
