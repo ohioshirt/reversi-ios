@@ -91,6 +91,7 @@ class ViewController: UIViewController {
     private func setupBindings() {
         // 盤面の変更を監視
         viewModel.$state
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
                 self?.syncBoardViewWithState(state)
             }
@@ -98,6 +99,7 @@ class ViewController: UIViewController {
 
         // パスイベントを監視
         viewModel.passEvent
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] passEvent in
                 self?.showPassAlert(for: passEvent.passedPlayer)
             }
