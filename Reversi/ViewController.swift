@@ -85,7 +85,7 @@ class ViewController: UIViewController {
         }
     }
 
-    // MARK: - ViewModel Bindings
+    // MARK: - ViewModel Bindings (Board state changes, Pass events)
 
     /// ViewModelの状態変更をUIに反映するバインディングを設定
     private func setupBindings() {
