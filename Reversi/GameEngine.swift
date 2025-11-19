@@ -9,11 +9,20 @@ public struct GameEngine {
     ]
 
     /// 指定位置にディスクを配置し、反転するディスクの座標を返す
+    ///
     /// - Parameters:
     ///   - position: 配置する座標
     ///   - disk: 配置するディスク
     ///   - board: 盤面（inoutで更新される）
     /// - Returns: 反転されたディスクの座標配列
+    ///
+    /// 失敗時の挙動:
+    /// - 既にディスクがある位置の場合: 空配列を返す（盤面は変更されない）
+    /// - 反転するディスクがない場合（無効な手）: 空配列を返す（盤面は変更されない）
+    ///
+    /// 注: 空配列が返された場合、配置は失敗しています。呼び出し側は、事前に
+    /// `canPlaceDisk(at:for:in:)`で配置可能かを確認するか、または
+    /// `flippedDiskPositions(at:for:in:)`で反転座標を取得してから呼び出すことを推奨します。
     @discardableResult
     public func placeDisk(at position: Position, for disk: Disk, on board: inout Board) -> [Position] {
         guard board.disk(at: position) == nil else { return [] }
