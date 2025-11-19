@@ -225,7 +225,7 @@ extension ViewController {
     func placeDisk(_ disk: Disk, atX x: Int, y: Int, animated isAnimated: Bool, completion: ((Bool) -> Void)? = nil) {
         let position = Position(x: x, y: y)
 
-        Task { @MainActor in
+        Task {
             // 配置検証と反転座標取得（ViewModelレイヤーで一度だけ実行）
             let flippedPositions = gameEngine.flippedDiskPositions(at: position, for: disk, in: viewModel.state.board)
 
@@ -249,7 +249,7 @@ extension ViewController {
 
                     // ViewModelの状態を更新（非同期）
                     // 注: すでに検証済みなので、placeDiskは成功するはず
-                    Task { @MainActor in
+                    Task {
                         let placementSuccess = await self.viewModel.placeDisk(at: position)
                         if placementSuccess {
                             try? self.saveGame()
