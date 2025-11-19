@@ -459,7 +459,7 @@ extension ViewController {
         // プレイヤーモードUIを同期
         for side in Disk.sides {
             let mode = loadedState.playerMode(for: side)
-            playerControls[side.index].selectedSegmentIndex = mode == .manual ? 0 : 1
+            playerControls[side.index].selectedSegmentIndex = Player(playerMode: mode).rawValue
         }
 
         // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
@@ -472,6 +472,16 @@ extension ViewController {
     enum Player: Int {
         case manual = 0
         case computer = 1
+
+        /// PlayerModeからPlayerへの変換イニシャライザ
+        init(playerMode: PlayerMode) {
+            switch playerMode {
+            case .manual:
+                self = .manual
+            case .computer:
+                self = .computer
+            }
+        }
     }
 }
 
