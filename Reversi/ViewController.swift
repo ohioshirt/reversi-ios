@@ -221,7 +221,6 @@ extension ViewController {
                     guard let self = self else { return }
                     guard let canceller = self.animationCanceller else { return }
                     if canceller.isCancelled { return }
-                    cleanUp()
 
                     // ViewModelの状態を更新（非同期）
                     // 注: すでに検証済みなので、placeDiskは成功するはず
@@ -230,6 +229,9 @@ extension ViewController {
                         if placementSuccess {
                             try? self.saveGame()
                         }
+
+                        // クリーンアップはViewModel更新後に実行（競合状態を回避）
+                        cleanUp()
                         completion?(animationCompleted && placementSuccess)
                     }
                 }
