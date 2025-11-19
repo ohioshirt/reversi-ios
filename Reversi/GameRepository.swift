@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// ゲーム状態の永続化を担当するリポジトリプロトコル
 public protocol GameRepository {
@@ -14,6 +15,7 @@ public class FileGameRepository: GameRepository {
     private let fileURL: URL
     private static let legacyFileName = "Game"
     private static let currentFileName = "reversi.json"
+    private static let logger = Logger(subsystem: "com.example.reversi", category: "GameRepository")
 
     public init(fileURL: URL? = nil) {
         if let fileURL = fileURL {
@@ -29,15 +31,15 @@ public class FileGameRepository: GameRepository {
                 create: true
             ) {
                 self.fileURL = documentDirectoryURL.appendingPathComponent(Self.currentFileName)
-                print("[GameRepository] Using documents directory: \(self.fileURL.path)")
+                Self.logger.info("Using documents directory: \(self.fileURL.path)")
 
                 // 後方互換性: 旧ファイル名からのマイグレーション
                 Self.migrateLegacyFileIfNeeded(in: documentDirectoryURL)
             } else {
                 // フォールバック: 一時ディレクトリを使用
                 self.fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(Self.currentFileName)
-                print("[GameRepository] WARNING: Documents directory unavailable, falling back to temporary directory: \(self.fileURL.path)")
-                print("[GameRepository] NOTE: Saved games in temporary directory may be deleted by the system.")
+                Self.logger.warning("Documents directory unavailable, falling back to temporary directory: \(self.fileURL.path)")
+                Self.logger.info("Note: Saved games in temporary directory may be deleted by the system.")
             }
         }
     }
@@ -53,9 +55,9 @@ public class FileGameRepository: GameRepository {
         if fileManager.fileExists(atPath: legacyURL.path) && !fileManager.fileExists(atPath: currentURL.path) {
             do {
                 try fileManager.moveItem(at: legacyURL, to: currentURL)
-                print("[GameRepository] Successfully migrated '\(legacyFileName)' to '\(currentFileName)'")
+                logger.info("Successfully migrated '\(legacyFileName)' to '\(currentFileName)'")
             } catch {
-                print("[GameRepository] WARNING: Failed to migrate legacy file: \(error)")
+                logger.warning("Failed to migrate legacy file: \(error)")
             }
         }
     }
