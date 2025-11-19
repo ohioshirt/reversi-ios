@@ -39,16 +39,14 @@ public struct Board {
         return (0..<Board.width).contains(position.x) && (0..<Board.height).contains(position.y)
     }
 
-    /// すべての座標を列挙
-    public static func allPositions() -> [Position] {
-        var positions: [Position] = []
-        for y in 0..<height {
-            for x in 0..<width {
-                positions.append(Position(x: x, y: y))
+    /// すべての座標を列挙（キャッシュ済み）
+    public static let allPositions: [Position] = {
+        (0..<height).flatMap { y in
+            (0..<width).map { x in
+                Position(x: x, y: y)
             }
         }
-        return positions
-    }
+    }()
 }
 
 extension Board: Codable {}

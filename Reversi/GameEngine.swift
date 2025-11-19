@@ -98,7 +98,7 @@ public struct GameEngine {
     ///   - board: 盤面
     /// - Returns: 配置可能な座標の配列
     public func validMoves(for disk: Disk, in board: Board) -> [Position] {
-        return Board.allPositions().filter { position in
+        return Board.allPositions.filter { position in
             canPlaceDisk(at: position, for: disk, in: board)
         }
     }
@@ -122,7 +122,7 @@ public struct GameEngine {
     ///   - board: 盤面
     /// - Returns: ディスクの枚数
     public func diskCount(for disk: Disk, in board: Board) -> Int {
-        return Board.allPositions().filter { position in
+        return Board.allPositions.filter { position in
             board.disk(at: position) == disk
         }.count
     }
