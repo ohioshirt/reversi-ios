@@ -13,6 +13,10 @@ public struct PassEvent {
 }
 
 /// ゲームのViewModel（Application層）
+///
+/// ViewModelはUI関連の状態を管理するため、MainActorで実行されます。
+/// これにより、すべての状態変更とイベント発行がメインスレッドで安全に実行されることが保証されます。
+@MainActor
 public class GameViewModel: ObservableObject {
     /// ゲームエンジン
     private let engine: GameEngine
@@ -28,8 +32,8 @@ public class GameViewModel: ObservableObject {
     ///
     /// 注:
     /// - PassthroughSubjectはイベントを永続化せず、発行時のみ通知します。手動でのクリア処理は不要です。
-    /// - @MainActorでマークされており、イベントは常にメインスレッドで発行・購読されます。
-    @MainActor public let passEvent = PassthroughSubject<PassEvent, Never>()
+    /// - クラス全体がMainActorで実行されるため、イベントは常にメインスレッドで発行・購読されます。
+    public let passEvent = PassthroughSubject<PassEvent, Never>()
 
     public init(engine: GameEngine, initialState: GameState = GameState()) {
         self.engine = engine
@@ -54,7 +58,6 @@ public class GameViewModel: ObservableObject {
     /// ディスクを配置
     /// - Parameter position: 配置する座標
     /// - Returns: 配置に成功したかどうか
-    @MainActor
     public func placeDisk(at position: Position) async -> Bool {
         guard let currentDisk = state.currentTurn else { return false }
 
@@ -69,7 +72,6 @@ public class GameViewModel: ObservableObject {
     }
 
     /// ターンを進める
-    @MainActor
     private func advanceTurn() {
         guard let current = state.currentTurn else { return }
 
@@ -96,7 +98,6 @@ public class GameViewModel: ObservableObject {
     }
 
     /// ゲームをリセット
-    @MainActor
     public func newGame() {
         state = GameState(
             darkPlayerMode: state.darkPlayerMode,
