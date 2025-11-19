@@ -54,8 +54,9 @@ public class FileGameRepository: GameRepository {
         // 旧ファイルが存在し、新ファイルが存在しない場合のみマイグレーション
         if fileManager.fileExists(atPath: legacyURL.path) && !fileManager.fileExists(atPath: currentURL.path) {
             do {
+                // moveItem は旧ファイルを新しい場所に移動し、元のファイルは自動的に削除されます
                 try fileManager.moveItem(at: legacyURL, to: currentURL)
-                logger.info("Successfully migrated '\(legacyFileName)' to '\(currentFileName)'")
+                logger.info("Successfully migrated '\(legacyFileName)' to '\(currentFileName)' (legacy file removed)")
             } catch {
                 logger.warning("Failed to migrate legacy file: \(error)")
             }
