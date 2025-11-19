@@ -242,24 +242,22 @@ extension ViewController {
                     self?.animationCanceller = nil
                 }
                 self.animationCanceller = Canceller(cleanUp)
-                self.animateSettingDisks(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] animationCompleted in
-                    guard let self = self else { return }
-                    guard let canceller = self.animationCanceller else { return }
-                    if canceller.isCancelled { return }
 
-                    // ViewModelの状態を更新（非同期）
-                    // 注: すでに検証済みなので、placeDiskは成功するはず
-                    Task {
-                        let placementSuccess = await self.viewModel.placeDisk(at: position)
-                        if placementSuccess {
-                            try? self.saveGame()
-                        }
+                let animationCompleted = await self.animateSettingDisksAsync(at: [(x, y)] + diskCoordinates, to: disk)
 
-                        // クリーンアップはViewModel更新後に実行（競合状態を回避）
-                        cleanUp()
-                        completion?(animationCompleted && placementSuccess)
-                    }
+                guard let canceller = self.animationCanceller else { return }
+                if canceller.isCancelled { return }
+
+                // ViewModelの状態を更新（非同期）
+                // 注: すでに検証済みなので、placeDiskは成功するはず
+                let placementSuccess = await self.viewModel.placeDisk(at: position)
+                if placementSuccess {
+                    try? self.saveGame()
                 }
+
+                // クリーンアップはViewModel更新後に実行（競合状態を回避）
+                cleanUp()
+                completion?(animationCompleted && placementSuccess)
             } else {
                 let success = await self.viewModel.placeDisk(at: position)
                 if success {
@@ -274,6 +272,17 @@ extension ViewController {
     /// `coordinates` から先頭の座標を取得してそのセルに `disk` を置き、
     /// 残りの座標についてこのメソッドを再帰呼び出しすることで処理が行われる。
     /// すべてのセルに `disk` が置けたら `completion` ハンドラーが呼び出される。
+    /// アニメーション付きでディスクを配置（async版）
+    private func animateSettingDisksAsync<C: Collection>(at coordinates: C, to disk: Disk) async -> Bool
+        where C.Element == (Int, Int)
+    {
+        await withCheckedContinuation { continuation in
+            animateSettingDisks(at: coordinates, to: disk) { completed in
+                continuation.resume(returning: completed)
+            }
+        }
+    }
+
     private func animateSettingDisks<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
         where C.Element == (Int, Int)
     {
@@ -281,7 +290,7 @@ extension ViewController {
             completion(true)
             return
         }
-        
+
         let animationCanceller = self.animationCanceller!
         boardView.setDisk(disk, atX: x, y: y, animated: true) { [weak self] isFinished in
             guard let self = self else { return }
