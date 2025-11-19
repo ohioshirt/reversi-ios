@@ -21,6 +21,14 @@ public class GameViewModel: ObservableObject {
     @Published public var state: GameState
 
     /// パスイベント（nilでない場合はパスが発生したことを示す）
+    ///
+    /// ライフサイクル:
+    /// - 設定: advanceTurn()内で次のプレイヤーがパスする場合に自動設定
+    /// - クリア: clearPassEvent()を明示的に呼ぶか、newGame()でリセット
+    /// - 消費: ViewControllerがCombineバインディング経由で検知し、パスアラートを表示後にクリア
+    ///
+    /// 注: イベントは明示的にクリアされるまで永続します。
+    /// UIレイヤーは、イベントを検知したら適切にclearPassEvent()を呼ぶ責任があります。
     @Published public var passEvent: PassEvent?
 
     public init(engine: GameEngine, initialState: GameState = GameState()) {
@@ -98,7 +106,15 @@ public class GameViewModel: ObservableObject {
         passEvent = nil
     }
 
-    /// パスイベントをクリア
+    /// パスイベントをクリアします。
+    ///
+    /// パスアラートを表示した後、または状態をリセットする際に呼び出します。
+    /// clearPassEvent()を呼ばないと、イベントは永続し、stale（古い）状態になる可能性があります。
+    ///
+    /// 推奨される呼び出しタイミング:
+    /// - パスアラートのDismissボタンが押された直後
+    /// - ゲームリセット時（newGame()内で自動的にクリアされます）
+    /// - フロー中断時（キャンセル等）
     @MainActor
     public func clearPassEvent() {
         passEvent = nil
