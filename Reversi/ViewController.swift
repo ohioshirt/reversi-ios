@@ -277,6 +277,7 @@ extension ViewController {
     ///   - coordinates: ディスクを置くセルの座標のコレクション
     ///   - disk: 配置するディスク
     /// - Returns: すべてのアニメーションが正常に完了した場合は `true`、キャンセルされた場合は `false`
+    @MainActor
     private func animateSettingDisksAsync<C: Collection>(at coordinates: C, to disk: Disk) async -> Bool
         where C.Element == (Int, Int)
     {
