@@ -132,10 +132,9 @@ extension ViewController {
     }
     
     private func flippedDiskCoordinatesByPlacingDisk(_ disk: Disk, atX x: Int, y: Int) -> [(Int, Int)] {
-        // GameEngineに委譲
+        // GameEngineに委譲（読み取り専用）
         let position = Position(x: x, y: y)
-        var tempBoard = viewModel.state.board
-        let flippedPositions = gameEngine.placeDisk(at: position, for: disk, on: &tempBoard)
+        let flippedPositions = gameEngine.flippedDiskPositions(at: position, for: disk, in: viewModel.state.board)
         return flippedPositions.map { (x: $0.x, y: $0.y) }
     }
     
@@ -187,10 +186,12 @@ extension ViewController {
                 // ViewModelの状態を更新（非同期）
                 Task { @MainActor in
                     let position = Position(x: x, y: y)
-                    _ = await self.viewModel.placeDisk(at: position)
+                    let success = await self.viewModel.placeDisk(at: position)
                     // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
-                    try? self.saveGame()
-                    completion?(isFinished)
+                    if success {
+                        try? self.saveGame()
+                    }
+                    completion?(isFinished && success)
                 }
             }
         } else {
@@ -199,7 +200,9 @@ extension ViewController {
                 let position = Position(x: x, y: y)
                 let success = await self.viewModel.placeDisk(at: position)
                 // ViewModelの状態更新により、Combineバインディングで自動的にBoardViewが更新される
-                try? self.saveGame()
+                if success {
+                    try? self.saveGame()
+                }
                 completion?(success)
             }
         }
@@ -261,33 +264,11 @@ extension ViewController {
         }
     }
     
-    /// プレイヤーの行動後、そのプレイヤーのターンを終了して次のターンを開始します。
-    /// もし、次のプレイヤーに有効な手が存在しない場合、パスとなります。
-    /// 両プレイヤーに有効な手がない場合、ゲームの勝敗を表示します。
+    /// 次のプレイヤーの行動を待ちます。
+    /// ターン管理はGameViewModelが行います。
     func nextTurn() {
-        // ViewModelのplaceDiskがターン管理を行うため、ここではUI更新のみ
-        // ターン情報はViewModelのstateから取得
-        guard let currentTurn = viewModel.state.currentTurn else {
-            // ゲーム終了
-            return
-        }
-
-        // パスの判定
-        let currentValidMoves = validMoves(for: currentTurn)
-        if currentValidMoves.isEmpty {
-            // パスアラートを表示
-            let alertController = UIAlertController(
-                title: "Pass",
-                message: "Cannot place a disk.",
-                preferredStyle: .alert
-            )
-            alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
-                self?.waitForPlayer()
-            })
-            present(alertController, animated: true)
-        } else {
-            waitForPlayer()
-        }
+        // ViewModelが既にターン管理を行っているため、次のプレイヤーを待つのみ
+        waitForPlayer()
     }
     
     /// "Computer" が選択されている場合のプレイヤーの行動を決定します。
