@@ -266,11 +266,15 @@ extension ViewController {
         }
     }
     
-    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く。
-    /// `coordinates` から先頭の座標を取得してそのセルに `disk` を置き、
-    /// 残りの座標についてこのメソッドを再帰呼び出しすることで処理が行われる。
-    /// すべてのセルに `disk` が置けたら `completion` ハンドラーが呼び出される。
-    /// アニメーション付きでディスクを配置（async版）
+    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く（async版）
+    ///
+    /// このメソッドは `animateSettingDisks` のasyncラッパーで、
+    /// コールバックベースのAPIをasync/awaitスタイルに変換します。
+    ///
+    /// - Parameters:
+    ///   - coordinates: ディスクを置くセルの座標のコレクション
+    ///   - disk: 配置するディスク
+    /// - Returns: すべてのアニメーションが正常に完了した場合は `true`、キャンセルされた場合は `false`
     private func animateSettingDisksAsync<C: Collection>(at coordinates: C, to disk: Disk) async -> Bool
         where C.Element == (Int, Int)
     {
@@ -281,6 +285,10 @@ extension ViewController {
         }
     }
 
+    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く。
+    /// `coordinates` から先頭の座標を取得してそのセルに `disk` を置き、
+    /// 残りの座標についてこのメソッドを再帰呼び出しすることで処理が行われる。
+    /// すべてのセルに `disk` が置けたら `completion` ハンドラーが呼び出される。
     private func animateSettingDisks<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
         where C.Element == (Int, Int)
     {
