@@ -18,12 +18,15 @@ public class FileGameRepository: GameRepository {
             self.fileURL = fileURL
         } else {
             // デフォルトのファイルパス
-            let documentDirectoryURL = try! FileManager.default.url(
+            // ドキュメントディレクトリへのアクセスを試みる
+            // 失敗した場合は一時ディレクトリを使用（サンドボックス制限等で失敗する可能性があるため）
+            let documentDirectoryURL = (try? FileManager.default.url(
                 for: .documentDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: true
-            )
+            )) ?? FileManager.default.temporaryDirectory
+
             self.fileURL = documentDirectoryURL.appendingPathComponent("reversi.json")
         }
     }

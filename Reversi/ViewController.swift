@@ -42,6 +42,14 @@ class ViewController: UIViewController {
 
     // MARK: - Initialization
 
+    /// 依存性のファクトリークロージャ（テスト時にモックと差し替え可能）
+    static var makeDependencies: () -> (GameEngine, GameViewModel, GameRepository) = {
+        let engine = GameEngine()
+        let viewModel = GameViewModel(engine: engine)
+        let repository = FileGameRepository()
+        return (engine, viewModel, repository)
+    }
+
     init?(coder: NSCoder, gameEngine: GameEngine, viewModel: GameViewModel, repository: GameRepository) {
         self.gameEngine = gameEngine
         self.viewModel = viewModel
@@ -50,11 +58,11 @@ class ViewController: UIViewController {
     }
 
     required init?(coder: NSCoder) {
-        // デフォルトの依存性を作成
-        let engine = GameEngine()
+        // ファクトリーから依存性を取得（テスト時には差し替え可能）
+        let (engine, viewModel, repository) = Self.makeDependencies()
         self.gameEngine = engine
-        self.viewModel = GameViewModel(engine: engine)
-        self.repository = FileGameRepository()
+        self.viewModel = viewModel
+        self.repository = repository
         super.init(coder: coder)
     }
     
@@ -84,6 +92,28 @@ class ViewController: UIViewController {
                 self?.syncBoardViewWithState(state)
             }
             .store(in: &cancellables)
+
+        // パスイベントを監視
+        viewModel.$passEvent
+            .compactMap { $0 }
+            .sink { [weak self] passEvent in
+                self?.showPassAlert(for: passEvent.passedPlayer)
+            }
+            .store(in: &cancellables)
+    }
+
+    /// パスアラートを表示
+    private func showPassAlert(for disk: Disk) {
+        let alertController = UIAlertController(
+            title: "Pass",
+            message: "Cannot place a disk.",
+            preferredStyle: .alert
+        )
+        alertController.addAction(UIAlertAction(title: "Dismiss", style: .default) { [weak self] _ in
+            self?.viewModel.clearPassEvent()
+            self?.waitForPlayer()
+        })
+        present(alertController, animated: true)
     }
 
     /// ViewModelのStateとBoardViewを同期
@@ -177,21 +207,23 @@ extension ViewController {
                 self?.animationCanceller = nil
             }
             animationCanceller = Canceller(cleanUp)
-            animateSettingDisks(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] isFinished in
+            animateSettingDisks(at: [(x, y)] + diskCoordinates, to: disk) { [weak self] animationCompleted in
                 guard let self = self else { return }
                 guard let canceller = self.animationCanceller else { return }
                 if canceller.isCancelled { return }
                 cleanUp()
 
                 // ViewModelの状態を更新（非同期）
+                // animationCompletedをキャプチャしてTask内で使用
                 Task { @MainActor in
                     let position = Position(x: x, y: y)
-                    let success = await self.viewModel.placeDisk(at: position)
+                    let placementSuccess = await self.viewModel.placeDisk(at: position)
                     // ViewModelの状態更新により、Combineバインディングで自動的にUIが更新される
-                    if success {
+                    if placementSuccess {
                         try? self.saveGame()
                     }
-                    completion?(isFinished && success)
+                    // アニメーションとディスク配置の両方が成功した場合のみtrueを返す
+                    completion?(animationCompleted && placementSuccess)
                 }
             }
         } else {

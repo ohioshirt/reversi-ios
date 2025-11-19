@@ -47,25 +47,25 @@ public struct GameEngine {
             var currentPos = position
             var flippedInLine: [Position] = []
 
-            while true {
+            directionLoop: while true {
                 currentPos = Position(
                     x: currentPos.x + direction.x,
                     y: currentPos.y + direction.y
                 )
 
-                guard board.isValid(position: currentPos) else { break }
+                guard board.isValid(position: currentPos) else { break directionLoop }
 
                 switch board.disk(at: currentPos) {
                 case .some(let d) where d == disk:
                     // 自分の色に到達 → この方向のディスクを反転対象に追加
                     allFlipped.append(contentsOf: flippedInLine)
-                    break
+                    break directionLoop
                 case .some(let d) where d == disk.flipped:
                     // 相手の色 → 反転候補に追加して継続
                     flippedInLine.append(currentPos)
                 default:
                     // 空マスまたは盤外 → この方向は無効
-                    break
+                    break directionLoop
                 }
             }
         }

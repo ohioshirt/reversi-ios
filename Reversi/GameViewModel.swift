@@ -1,6 +1,17 @@
 import Foundation
 import Combine
 
+/// パスイベントを表す構造体
+public struct PassEvent {
+    public let passedPlayer: Disk
+    public let timestamp: Date
+
+    public init(passedPlayer: Disk, timestamp: Date = Date()) {
+        self.passedPlayer = passedPlayer
+        self.timestamp = timestamp
+    }
+}
+
 /// ゲームのViewModel（Application層）
 public class GameViewModel: ObservableObject {
     /// ゲームエンジン
@@ -9,9 +20,13 @@ public class GameViewModel: ObservableObject {
     /// ゲームの状態
     @Published public var state: GameState
 
+    /// パスイベント（nilでない場合はパスが発生したことを示す）
+    @Published public var passEvent: PassEvent?
+
     public init(engine: GameEngine, initialState: GameState = GameState()) {
         self.engine = engine
         self.state = initialState
+        self.passEvent = nil
     }
 
     /// 指定されたディスクの枚数を返す
@@ -59,7 +74,10 @@ public class GameViewModel: ObservableObject {
             return
         }
 
-        // 次のプレイヤーがパスの場合、現在のプレイヤーに有効な手があるか確認
+        // 次のプレイヤーがパスの場合
+        passEvent = PassEvent(passedPlayer: next)
+
+        // 現在のプレイヤーに有効な手があるか確認
         if !validMoves(for: current).isEmpty {
             // 現在のプレイヤーのターンを継続（次のプレイヤーはパス）
             state.currentTurn = current
@@ -77,6 +95,13 @@ public class GameViewModel: ObservableObject {
             darkPlayerMode: state.darkPlayerMode,
             lightPlayerMode: state.lightPlayerMode
         )
+        passEvent = nil
+    }
+
+    /// パスイベントをクリア
+    @MainActor
+    public func clearPassEvent() {
+        passEvent = nil
     }
 
     /// プレイヤーモードを切り替え
