@@ -307,10 +307,12 @@ extension ViewController {
         }
     }
     
-    /// 次のプレイヤーの行動を待ちます。
-    /// ターン管理はGameViewModelが行います。
-    func nextTurn() {
-        // ViewModelが既にターン管理を行っているため、次のプレイヤーを待つのみ
+    /// ディスク配置後のゲームフローを続けます。
+    /// 現在のプレイヤー（ViewModelで自動的に決定されたターン）の行動を待ちます。
+    ///
+    /// 注: ターン管理自体はGameViewModelが行います。このメソッドは単に
+    /// 次のプレイヤー（コンピュータまたは手動）の行動を促すだけです。
+    func continueGameFlow() {
         waitForPlayer()
     }
     
@@ -333,7 +335,7 @@ extension ViewController {
             cleanUp()
 
             self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
-                self?.nextTurn()
+                self?.continueGameFlow()
             }
         }
         
@@ -432,7 +434,7 @@ extension ViewController: BoardViewDelegate {
         guard case .manual = Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! else { return }
         // 配置が無効な場合はcompletionでfalseが返される
         placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
-            self?.nextTurn()
+            self?.continueGameFlow()
         }
     }
 }
