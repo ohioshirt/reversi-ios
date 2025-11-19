@@ -33,6 +33,9 @@ class ViewController: UIViewController {
     /// Combineのキャンセル管理
     private var cancellables = Set<AnyCancellable>()
 
+    /// 前回の盤面状態（diffingに使用）
+    private var previousBoard: Board?
+
     // MARK: - Animation Management
 
     private var animationCanceller: Canceller?
@@ -117,15 +120,37 @@ class ViewController: UIViewController {
     }
 
     /// ViewModelのStateとBoardViewを同期
+    ///
+    /// パフォーマンス最適化: 前回の盤面状態とdiffを取り、変更されたセルのみを更新します。
     private func syncBoardViewWithState(_ state: GameState) {
-        // 盤面のすべてのセルを同期
-        for y in 0..<Board.height {
-            for x in 0..<Board.width {
-                let position = Position(x: x, y: y)
-                let disk = state.board.disk(at: position)
-                boardView.setDisk(disk, atX: x, y: y, animated: false)
+        let currentBoard = state.board
+
+        if let previousBoard = previousBoard {
+            // Diffをとって、変更されたセルのみを更新（最適化）
+            for y in 0..<Board.height {
+                for x in 0..<Board.width {
+                    let position = Position(x: x, y: y)
+                    let currentDisk = currentBoard.disk(at: position)
+                    let previousDisk = previousBoard.disk(at: position)
+
+                    if currentDisk != previousDisk {
+                        boardView.setDisk(currentDisk, atX: x, y: y, animated: false)
+                    }
+                }
+            }
+        } else {
+            // 初回またはリセット後は全セルを更新
+            for y in 0..<Board.height {
+                for x in 0..<Board.width {
+                    let position = Position(x: x, y: y)
+                    let disk = currentBoard.disk(at: position)
+                    boardView.setDisk(disk, atX: x, y: y, animated: false)
+                }
             }
         }
+
+        // 盤面状態を保存（次回のdiff用）
+        previousBoard = currentBoard
 
         // UI要素を更新
         updateMessageViews()
