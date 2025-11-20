@@ -38,10 +38,13 @@ class ViewController: UIViewController {
 
     // MARK: - Animation Management
 
-    private var animationCanceller: Canceller?
-    private var isAnimating: Bool { animationCanceller != nil }
+    /// アニメーション制御を担当するコントローラー
+    private var animationController: AnimationController!
 
-    private var playerCancellers: [Disk: Canceller] = [:]
+    // MARK: - Computer Player Management
+
+    /// Computerプレイヤーの行動を管理するコントローラー
+    private var computerPlayerController: ComputerPlayerController!
 
     // MARK: - Initialization
 
@@ -74,6 +77,12 @@ class ViewController: UIViewController {
 
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
+
+        // AnimationControllerを初期化
+        animationController = AnimationController(boardView: boardView)
+
+        // ComputerPlayerControllerを初期化
+        computerPlayerController = ComputerPlayerController()
 
         // ViewModelの状態変更を監視
         setupBindings()
@@ -239,15 +248,11 @@ extension ViewController {
             let diskCoordinates = flippedPositions.map { ($0.x, $0.y) }
 
             if isAnimated {
-                let cleanUp: () -> Void = { [weak self] in
-                    self?.animationCanceller = nil
-                }
-                self.animationCanceller = Canceller(cleanUp)
-
-                let animationCompleted = await self.animateSettingDisksAsync(at: [(x, y)] + diskCoordinates, to: disk)
-
-                guard let canceller = self.animationCanceller else { return }
-                if canceller.isCancelled { return }
+                // AnimationControllerでアニメーション実行
+                let animationCompleted = await self.animationController.animateSettingDisks(
+                    at: [(x, y)] + diskCoordinates,
+                    to: disk
+                )
 
                 // ViewModelの状態を更新（非同期）
                 // 注: 上記で検証済みなので、placeDiskは通常成功するはず
@@ -257,8 +262,6 @@ extension ViewController {
                     try? self.saveGame()
                 }
 
-                // アニメーションキャンセラーをクリーンアップ
-                cleanUp()
                 completion?(animationCompleted && placementSuccess)
             } else {
                 let success = await self.viewModel.placeDisk(at: position)
@@ -270,52 +273,6 @@ extension ViewController {
         }
     }
     
-    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く（async版）
-    ///
-    /// このメソッドは `animateSettingDisks` のasyncラッパーで、
-    /// コールバックベースのAPIをasync/awaitスタイルに変換します。
-    ///
-    /// - Parameters:
-    ///   - coordinates: ディスクを置くセルの座標のコレクション
-    ///   - disk: 配置するディスク
-    /// - Returns: すべてのアニメーションが正常に完了した場合は `true`、キャンセルされた場合は `false`
-    @MainActor
-    private func animateSettingDisksAsync<C: Collection>(at coordinates: C, to disk: Disk) async -> Bool
-        where C.Element == (Int, Int)
-    {
-        await withCheckedContinuation { continuation in
-            animateSettingDisks(at: coordinates, to: disk) { completed in
-                continuation.resume(returning: completed)
-            }
-        }
-    }
-
-    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く。
-    /// `coordinates` から先頭の座標を取得してそのセルに `disk` を置き、
-    /// 残りの座標についてこのメソッドを再帰呼び出しすることで処理が行われる。
-    /// すべてのセルに `disk` が置けたら `completion` ハンドラーが呼び出される。
-    private func animateSettingDisks<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
-        where C.Element == (Int, Int)
-    {
-        guard let (x, y) = coordinates.first else {
-            completion(true)
-            return
-        }
-
-        let animationCanceller = self.animationCanceller!
-        boardView.setDisk(disk, atX: x, y: y, animated: true) { [weak self] isFinished in
-            guard let self = self else { return }
-            if animationCanceller.isCancelled { return }
-            if isFinished {
-                self.animateSettingDisks(at: coordinates.dropFirst(), to: disk, completion: completion)
-            } else {
-                for (x, y) in coordinates {
-                    self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                }
-                completion(false)
-            }
-        }
-    }
 }
 
 // MARK: Game management
@@ -358,27 +315,27 @@ extension ViewController {
     /// "Computer" が選択されている場合のプレイヤーの行動を決定します。
     func playTurnOfComputer() {
         guard let turn = viewModel.state.currentTurn else { preconditionFailure() }
-        let (x, y) = validMoves(for: turn).randomElement()!
+        let validMovesForTurn = validMoves(for: turn)
 
-        playerActivityIndicators[turn.index].startAnimating()
-        
-        let cleanUp: () -> Void = { [weak self] in
-            guard let self = self else { return }
-            self.playerActivityIndicators[turn.index].stopAnimating()
-            self.playerCancellers[turn] = nil
-        }
-        let canceller = Canceller(cleanUp)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            guard let self = self else { return }
-            if canceller.isCancelled { return }
-            cleanUp()
-
-            self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
-                self?.continueGameFlow()
+        // ComputerPlayerControllerに委譲
+        computerPlayerController.playTurn(
+            for: turn,
+            validMoves: validMovesForTurn,
+            onThinkingStart: { [weak self] in
+                guard let self = self else { return }
+                self.playerActivityIndicators[turn.index].startAnimating()
+            },
+            onThinkingEnd: { [weak self] in
+                guard let self = self else { return }
+                self.playerActivityIndicators[turn.index].stopAnimating()
+            },
+            completion: { [weak self] selectedMove in
+                guard let self = self, let (x, y) = selectedMove else { return }
+                self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
+                    self?.continueGameFlow()
+                }
             }
-        }
-        
-        playerCancellers[turn] = canceller
+        )
     }
 }
 
@@ -427,15 +384,11 @@ extension ViewController {
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in })
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }
-            
-            self.animationCanceller?.cancel()
-            self.animationCanceller = nil
-            
-            for side in Disk.sides {
-                self.playerCancellers[side]?.cancel()
-                self.playerCancellers.removeValue(forKey: side)
-            }
-            
+
+            // すべてのアニメーションとComputer思考をキャンセル
+            self.animationController.cancelAllAnimations()
+            self.computerPlayerController.cancelAllTurns()
+
             self.newGame()
             self.waitForPlayer()
         })
@@ -451,12 +404,13 @@ extension ViewController {
 
         try? saveGame()
 
-        if let canceller = playerCancellers[side] {
-            canceller.cancel()
-        }
+        // 該当プレイヤーのComputer思考をキャンセル
+        computerPlayerController.cancelTurn(for: side)
 
         // コンピュータモードに変更された場合、即座にプレイ
-        if !isAnimating, side == viewModel.state.currentTurn, case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
+        if !animationController.isAnimating,
+           side == viewModel.state.currentTurn,
+           case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
             playTurnOfComputer()
         }
     }
@@ -469,7 +423,7 @@ extension ViewController: BoardViewDelegate {
     /// - Parameter y: セルの行です。
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
         guard let turn = viewModel.state.currentTurn else { return }
-        if isAnimating { return }
+        if animationController.isAnimating { return }
         guard case .manual = Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! else { return }
         // 配置が無効な場合はcompletionでfalseが返される
         placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
@@ -521,21 +475,6 @@ extension ViewController {
                 self = .computer
             }
         }
-    }
-}
-
-final class Canceller {
-    private(set) var isCancelled: Bool = false
-    private let body: (() -> Void)?
-
-    init(_ body: (() -> Void)?) {
-        self.body = body
-    }
-
-    func cancel() {
-        if isCancelled { return }
-        isCancelled = true
-        body?()
     }
 }
 
