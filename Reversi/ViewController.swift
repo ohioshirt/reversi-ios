@@ -384,15 +384,11 @@ extension ViewController {
         alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in })
         alertController.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
             guard let self = self else { return }
-            
-            self.animationCanceller?.cancel()
-            self.animationCanceller = nil
-            
-            for side in Disk.sides {
-                self.playerCancellers[side]?.cancel()
-                self.playerCancellers.removeValue(forKey: side)
-            }
-            
+
+            // すべてのアニメーションとComputer思考をキャンセル
+            self.animationController.cancelAllAnimations()
+            self.computerPlayerController.cancelAllTurns()
+
             self.newGame()
             self.waitForPlayer()
         })
@@ -408,12 +404,13 @@ extension ViewController {
 
         try? saveGame()
 
-        if let canceller = playerCancellers[side] {
-            canceller.cancel()
-        }
+        // 該当プレイヤーのComputer思考をキャンセル
+        computerPlayerController.cancelTurn(for: side)
 
         // コンピュータモードに変更された場合、即座にプレイ
-        if !isAnimating, side == viewModel.state.currentTurn, case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
+        if !animationController.isAnimating,
+           side == viewModel.state.currentTurn,
+           case .computer = Player(rawValue: sender.selectedSegmentIndex)! {
             playTurnOfComputer()
         }
     }
@@ -426,7 +423,7 @@ extension ViewController: BoardViewDelegate {
     /// - Parameter y: セルの行です。
     func boardView(_ boardView: BoardView, didSelectCellAtX x: Int, y: Int) {
         guard let turn = viewModel.state.currentTurn else { return }
-        if isAnimating { return }
+        if animationController.isAnimating { return }
         guard case .manual = Player(rawValue: playerControls[turn.index].selectedSegmentIndex)! else { return }
         // 配置が無効な場合はcompletionでfalseが返される
         placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
