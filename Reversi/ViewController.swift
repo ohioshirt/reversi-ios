@@ -38,8 +38,8 @@ class ViewController: UIViewController {
 
     // MARK: - Animation Management
 
-    private var animationCanceller: Canceller?
-    private var isAnimating: Bool { animationCanceller != nil }
+    /// アニメーション制御を担当するコントローラー
+    private var animationController: AnimationController!
 
     private var playerCancellers: [Disk: Canceller] = [:]
 
@@ -74,6 +74,9 @@ class ViewController: UIViewController {
 
         boardView.delegate = self
         messageDiskSize = messageDiskSizeConstraint.constant
+
+        // AnimationControllerを初期化
+        animationController = AnimationController(boardView: boardView)
 
         // ViewModelの状態変更を監視
         setupBindings()
@@ -239,15 +242,11 @@ extension ViewController {
             let diskCoordinates = flippedPositions.map { ($0.x, $0.y) }
 
             if isAnimated {
-                let cleanUp: () -> Void = { [weak self] in
-                    self?.animationCanceller = nil
-                }
-                self.animationCanceller = Canceller(cleanUp)
-
-                let animationCompleted = await self.animateSettingDisksAsync(at: [(x, y)] + diskCoordinates, to: disk)
-
-                guard let canceller = self.animationCanceller else { return }
-                if canceller.isCancelled { return }
+                // AnimationControllerでアニメーション実行
+                let animationCompleted = await self.animationController.animateSettingDisks(
+                    at: [(x, y)] + diskCoordinates,
+                    to: disk
+                )
 
                 // ViewModelの状態を更新（非同期）
                 // 注: 上記で検証済みなので、placeDiskは通常成功するはず
@@ -257,8 +256,6 @@ extension ViewController {
                     try? self.saveGame()
                 }
 
-                // アニメーションキャンセラーをクリーンアップ
-                cleanUp()
                 completion?(animationCompleted && placementSuccess)
             } else {
                 let success = await self.viewModel.placeDisk(at: position)
@@ -270,52 +267,6 @@ extension ViewController {
         }
     }
     
-    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く（async版）
-    ///
-    /// このメソッドは `animateSettingDisks` のasyncラッパーで、
-    /// コールバックベースのAPIをasync/awaitスタイルに変換します。
-    ///
-    /// - Parameters:
-    ///   - coordinates: ディスクを置くセルの座標のコレクション
-    ///   - disk: 配置するディスク
-    /// - Returns: すべてのアニメーションが正常に完了した場合は `true`、キャンセルされた場合は `false`
-    @MainActor
-    private func animateSettingDisksAsync<C: Collection>(at coordinates: C, to disk: Disk) async -> Bool
-        where C.Element == (Int, Int)
-    {
-        await withCheckedContinuation { continuation in
-            animateSettingDisks(at: coordinates, to: disk) { completed in
-                continuation.resume(returning: completed)
-            }
-        }
-    }
-
-    /// `coordinates` で指定されたセルに、アニメーションしながら順番に `disk` を置く。
-    /// `coordinates` から先頭の座標を取得してそのセルに `disk` を置き、
-    /// 残りの座標についてこのメソッドを再帰呼び出しすることで処理が行われる。
-    /// すべてのセルに `disk` が置けたら `completion` ハンドラーが呼び出される。
-    private func animateSettingDisks<C: Collection>(at coordinates: C, to disk: Disk, completion: @escaping (Bool) -> Void)
-        where C.Element == (Int, Int)
-    {
-        guard let (x, y) = coordinates.first else {
-            completion(true)
-            return
-        }
-
-        let animationCanceller = self.animationCanceller!
-        boardView.setDisk(disk, atX: x, y: y, animated: true) { [weak self] isFinished in
-            guard let self = self else { return }
-            if animationCanceller.isCancelled { return }
-            if isFinished {
-                self.animateSettingDisks(at: coordinates.dropFirst(), to: disk, completion: completion)
-            } else {
-                for (x, y) in coordinates {
-                    self.boardView.setDisk(disk, atX: x, y: y, animated: false)
-                }
-                completion(false)
-            }
-        }
-    }
 }
 
 // MARK: Game management
@@ -521,21 +472,6 @@ extension ViewController {
                 self = .computer
             }
         }
-    }
-}
-
-final class Canceller {
-    private(set) var isCancelled: Bool = false
-    private let body: (() -> Void)?
-
-    init(_ body: (() -> Void)?) {
-        self.body = body
-    }
-
-    func cancel() {
-        if isCancelled { return }
-        isCancelled = true
-        body?()
     }
 }
 
