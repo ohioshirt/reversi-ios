@@ -41,7 +41,10 @@ class ViewController: UIViewController {
     /// アニメーション制御を担当するコントローラー
     private var animationController: AnimationController!
 
-    private var playerCancellers: [Disk: Canceller] = [:]
+    // MARK: - Computer Player Management
+
+    /// Computerプレイヤーの行動を管理するコントローラー
+    private var computerPlayerController: ComputerPlayerController!
 
     // MARK: - Initialization
 
@@ -77,6 +80,9 @@ class ViewController: UIViewController {
 
         // AnimationControllerを初期化
         animationController = AnimationController(boardView: boardView)
+
+        // ComputerPlayerControllerを初期化
+        computerPlayerController = ComputerPlayerController()
 
         // ViewModelの状態変更を監視
         setupBindings()
@@ -309,27 +315,27 @@ extension ViewController {
     /// "Computer" が選択されている場合のプレイヤーの行動を決定します。
     func playTurnOfComputer() {
         guard let turn = viewModel.state.currentTurn else { preconditionFailure() }
-        let (x, y) = validMoves(for: turn).randomElement()!
+        let validMovesForTurn = validMoves(for: turn)
 
-        playerActivityIndicators[turn.index].startAnimating()
-        
-        let cleanUp: () -> Void = { [weak self] in
-            guard let self = self else { return }
-            self.playerActivityIndicators[turn.index].stopAnimating()
-            self.playerCancellers[turn] = nil
-        }
-        let canceller = Canceller(cleanUp)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            guard let self = self else { return }
-            if canceller.isCancelled { return }
-            cleanUp()
-
-            self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
-                self?.continueGameFlow()
+        // ComputerPlayerControllerに委譲
+        computerPlayerController.playTurn(
+            for: turn,
+            validMoves: validMovesForTurn,
+            onThinkingStart: { [weak self] in
+                guard let self = self else { return }
+                self.playerActivityIndicators[turn.index].startAnimating()
+            },
+            onThinkingEnd: { [weak self] in
+                guard let self = self else { return }
+                self.playerActivityIndicators[turn.index].stopAnimating()
+            },
+            completion: { [weak self] selectedMove in
+                guard let self = self, let (x, y) = selectedMove else { return }
+                self.placeDisk(turn, atX: x, y: y, animated: true) { [weak self] _ in
+                    self?.continueGameFlow()
+                }
             }
-        }
-        
-        playerCancellers[turn] = canceller
+        )
     }
 }
 
